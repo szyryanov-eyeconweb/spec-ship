@@ -1,0 +1,26 @@
+# spec-ship notifications — уведомления о точках, требующих участия человека.
+# Использование: cp .ship/notify.yaml.dist .ship/notify.yaml (gitignored), заполнить.
+# Читает .claude/hooks/ship-notify.sh (Stop-хук). Детали — README ship, «Уведомления».
+#
+# Токен бота НЕ хранить в этом файле и НЕ коммитить:
+# env-переменная (telegram_token_env) или файл вне репо (telegram_token_file).
+
+enabled: false
+transport: telegram
+
+# chat_id канала/чата (бот должен быть добавлен с правом писать)
+telegram_chat_id: ""
+
+# откуда взять токен бота: сначала env, потом файл
+telegram_token_env: SHIP_TELEGRAM_BOT_TOKEN
+telegram_token_file: ~/.config/ship-notify/telegram-token
+
+# какие события слать; пусто = все
+# blocking_questions   — bd: blocking-вопросы без resolution
+# bd_approval          — bd: status draft, ждёт апрува
+# shape_proposal       — task: shape ждёт шейп-сессии Dev
+# test_update_pending  — TestUpdateTicket ждёт maintainer
+# adr_conflict_pending — AdrChangeTicket ждёт вердикта
+# build_escalation     — BuildReport с эскалацией
+# review_escalate      — ReviewReport: ESCALATE
+events: blocking_questions, bd_approval, shape_proposal, test_update_pending, adr_conflict_pending, build_escalation, review_escalate
