@@ -522,7 +522,8 @@ pre.sc{margin:0;padding:10px 11px;font-size:10.5px;line-height:1.65;font-family:
   <div class="phase-skills">
     <div class="phase-skills-lbl">Скиллы этапа</div>
     <span class="sk">/spec-ship:adr-promote</span>
-    <span class="sk">/spec-ship:doc-promote</span>
+    <span class="sk">/spec-ship:doc-promote-feature</span>
+    <span class="sk">/spec-ship:doc-backfill</span>
   </div>
   <div class="cards">
     <div class="card">
@@ -546,7 +547,7 @@ pre.sc{margin:0;padding:10px 11px;font-size:10.5px;line-height:1.65;font-family:
         <li>Задетые чужие доки помечаются — ничто не лжёт молча</li>
         <li>Замыкание цикла: следующий survey по области читает current-доки вместо повторной трассировки</li>
       </ul>
-      <div class="card-skill">/spec-ship:doc-promote — выборка только через INDEX по Area, как у ADR</div>
+      <div class="card-skill">/spec-ship:doc-promote-feature (после мёржа) · /spec-ship:doc-backfill (из существующего кода) → конвертер doc-promote-internal; выборка через INDEX по Area, как у ADR</div>
       </div>
       <div class="card-foot"><span class="tag t-survey">survey</span><span class="tag t-doc">doc</span><span class="tag t-task">task</span><span class="tag t-wfdoc">wf-doc</span></div>
     </div>
@@ -606,7 +607,7 @@ function tog(btn){
     <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-task" style="flex-shrink:0">task</span><span><strong>task-*.json — TaskSpec v2</strong> — интерфейс, файлы, test_scenarios (workflow/input/expected_outcome), trust_zone, shape. <em>Создаёт /spec-ship:decompose (Phase 1). Поле shape — единственная разрешённая поздняя правка (шейп-сессия Build).</em></span></div>
     <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-result" style="flex-shrink:0">task-result</span><span><strong>build-*.json — BuildReport</strong> — итерации TDD, эскалации, self-review. <em>Создаёт /spec-ship:build (Phase 2). Читается /spec-ship:review на Phase 3.</em></span></div>
     <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-adr" style="flex-shrink:0">adr</span><span><strong>adr-entry-*.json — ADREntry</strong> — архитектурное решение (кандидат Proposed). <em>Создаёт /spec-ship:build (Phase 2). Промоутится /spec-ship:adr-promote → .ship/docs/adr/ADR-NNN.md на Delivery.</em></span></div>
-    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-wfdoc" style="flex-shrink:0">wf-doc</span><span><strong>.ship/docs/workflows/*.md — канон поведения</strong> — Definitions, workflow-трассы, словарь состояний; INDEX со статусами current / partially-outdated / superseded. <em>Создаёт /spec-ship:doc-promote (Delivery, после мёржа). Читается survey вместо повторной трассировки.</em></span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-wfdoc" style="flex-shrink:0">wf-doc</span><span><strong>.ship/docs/workflows/*.md — канон поведения</strong> — Definitions, workflow-трассы, словарь состояний; INDEX со статусами current / partially-outdated / superseded. <em>Создаёт /spec-ship:doc-promote-feature (Delivery, после мёржа) или /spec-ship:doc-backfill (заранее, из кода). Читается survey вместо повторной трассировки.</em></span></div>
     <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-code" style="flex-shrink:0">code</span><span><strong>src/ — исходный код</strong> — читается для понимания интерфейсов. <em>Пишет только ship-green (Phase 2), и только files_to_change.</em></span></div>
     <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-tests" style="flex-shrink:0">tests</span><span><strong>tests/ — тесты</strong> — контракт между RED и GREEN. <em>Пишет только ship-red. ship-green не трогает. Обновление — только через TestUpdateTicket + апрув.</em></span></div>
     <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-conflict" style="flex-shrink:0">conflict</span><span><strong>tu-*.json — TestUpdateTicket</strong> — конфликт существующего теста с новым spec. <em>Создаёт decompose (Phase 1) или build (Phase 2). Разрешает Agent RED + апрув maintainer.</em></span></div>
