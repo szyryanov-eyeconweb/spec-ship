@@ -17,7 +17,9 @@
 | `/spec-ship:build` | build | `task-*.json` | `build-*.json`, `adr-entry-*.json` | `pipeline/build-report/v1`, `pipeline/adr-entry/v1` |
 | `/spec-ship:review` | review | `build-*.json` | `review-*.json` | `pipeline/review-report/v1` |
 | `/spec-ship:adr-promote` | adr-promote | `adr-entry-*.json` (Proposed) | `.ship/docs/adr/ADR-NNN-*.md` + INDEX | — (markdown канон) |
-| `/spec-ship:doc-promote` | doc-promote | `survey-*.json` + `bd-*.json` (после мёржа MR) | `.ship/docs/workflows/*.md` + INDEX | — (markdown канон) |
+| `/spec-ship:doc-promote-feature` | doc-promote-feature | `survey-*.json` + `bd-*.json` (после мёржа MR) | `.ship/docs/workflows/*.md` + INDEX | — (markdown канон) |
+| `/spec-ship:doc-backfill` | doc-backfill | только `survey-*.json` (без MR-гейта, из существующего кода) | `.ship/docs/workflows/*.md` + INDEX | — (markdown канон) |
+| — (внутренний) | doc-promote-internal | source-артефакты от обёртки | `.ship/docs/workflows/*.md` + INDEX | — (конвертер, не вызывается напрямую) |
 
 Сабагенты (`.claude/agents/`), вызываются только из build:
 
@@ -200,11 +202,19 @@ adr-entry-*.json (Proposed)
 | | `.ship/docs/adr/` | `.ship/docs/workflows/` |
 |---|---|---|
 | Хранит | «почему решили так» | «как система себя ведёт» |
-| Источник | adr-entry (build) | survey + bd (после мёржа MR) |
-| Промоушен | `/spec-ship:adr-promote` | `/spec-ship:doc-promote` |
+| Источник | adr-entry (build) | feature: survey + bd (после мёржа MR); backfill: только survey (заранее, из существующего кода) |
+| Промоушен | `/spec-ship:adr-promote` | `/spec-ship:doc-promote-feature` (фича) · `/spec-ship:doc-backfill` (существующий код); оба → конвертер `doc-promote-internal` |
 | Статусы | Accepted / Expired | current / partially-outdated / superseded |
 | Потребитель | shape-doc, decompose, build, review | survey (вместо повторной трассировки) |
 | Выборка | только через INDEX, по Area | только через INDEX, по Area |
+
+**Разделение ответственности doc-promote** (механика vs политика запуска):
+
+- `doc-promote-internal` — чистый конвертер: source-артефакты + Source-помета + create/amend → workflow-док + INDEX. Не знает «когда» и «откуда», не проверяет гейты. `user-invocable: false` + `disable-model-invocation: true` — напрямую не вызывается, только из обёрток. Стабильная механика в одном месте, без дублирования.
+- `doc-promote-feature` — обёртка: гейт (ReviewReport APPROVED + MR смёржен), сбор survey+bd, вызов конвертера. «Когда» = после мёржа фичи.
+- `doc-backfill` — обёртка: без гейта, выбор эталона + survey существующего кода, вызов конвертера с пометой `backfill`. «Когда» = заранее, для типовых паттернов.
+
+Новый сценарий запуска (напр. промоушен по CI/расписанию) = новая обёртка; конвертер не трогается.
 
 Пайплайн-артефакты в `.ship/pipeline/` остаются одноразовым аудит-следом; канон поведения накапливается в `.ship/docs/workflows/` — каждый следующий survey по той же области дешевле.
 

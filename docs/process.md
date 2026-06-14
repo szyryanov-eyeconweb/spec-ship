@@ -96,7 +96,7 @@
 После апрува и мёржа MR — два ручных шага maintainer'а:
 
 - `/spec-ship:adr-promote` — кандидаты решений превращаются в канонические ADR (`.ship/docs/adr/ADR-NNN.md`): «почему сделано так».
-- `/spec-ship:doc-promote` — знание из survey и BusinessDoc складывается в workflow-доки (`.ship/docs/workflows/`): «как система себя ведёт».
+- `/spec-ship:doc-promote-feature` — знание из survey и BusinessDoc складывается в workflow-доки (`.ship/docs/workflows/`): «как система себя ведёт». (Для существующего кода без фичи — `/spec-ship:doc-backfill`.)
 
 Зачем: следующий survey по этой же области не трассирует код заново — он читает готовый док. Следующий shape-doc не конфликтует с принятыми решениями — он их видит. Знание дешевеет с каждой фичей.
 
