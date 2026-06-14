@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>spec-ship — Spec-to-Ship Pipeline v2</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;color:#1a1a18;font-size:13px}
+.top{padding:18px 20px 4px}
+.top h1{font-size:16px;font-weight:700}
+.top p{font-size:11px;color:#888;margin-top:3px}
+.wrap{padding:20px 0 32px;overflow-x:auto}
+.phases{display:flex;align-items:stretch;min-width:1700px}
+.phase{flex:1;display:flex;flex-direction:column;padding:0 14px 16px;border-right:1.5px solid #e0e0de}
+.phase:last-child{border-right:none}
+.phase-header{display:flex;align-items:baseline;gap:7px;padding:0 0 10px}
+.phase-num{width:20px;height:20px;border-radius:50%;background:#f0f0ee;color:#666;font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.phase-num.new{background:#0E4F4A;color:#fff}
+.phase-title{font-size:13px;font-weight:600}
+.phase-hint{font-size:11px;color:#999}
+.phase-desc{font-size:11px;color:#666;line-height:1.5;margin-bottom:8px;padding:7px 10px;border-radius:7px;background:#f8f8f6;border:0.5px solid #e0e0de}
+/* skills bar */
+.phase-skills{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;padding:6px 10px;border-radius:7px;background:#f0f0ff;border:0.5px solid #c8c4f0}
+.phase-skills-lbl{font-size:10px;color:#888;font-weight:500;width:100%;margin-bottom:3px}
+.sk{font-size:10px;font-weight:600;padding:2px 8px;border-radius:5px;background:#e8e6ff;color:#3C3489;font-family:"SF Mono","Fira Code",monospace}
+.cards{display:flex;flex-direction:column;gap:10px}
+.card{border:0.5px solid #e0e0de;border-radius:10px;overflow:hidden;background:#fff}
+.card-head{padding:9px 11px 7px}
+.card-name{font-size:13px;font-weight:600;line-height:1.3}
+.card-role{font-size:11px;color:#888;margin-top:1px}
+.sep{height:0.5px;background:#e0e0de}
+.card-body{padding:8px 11px;font-size:11px;color:#555;line-height:1.65}
+.card-body ul{padding-left:14px}
+.card-body li{margin-bottom:2px}
+.card-body strong{font-weight:600;color:#1a1a18}
+/* skill badge inside card */
+.card-skill{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:3px 8px;border-radius:5px;background:#e8e6ff;border:0.5px solid #c8c4f0;font-size:10px;color:#3C3489;font-weight:600;font-family:"SF Mono","Fira Code",monospace}
+.card-skill::before{content:"⚡";font-size:9px}
+.card-foot{padding:6px 11px 8px;border-top:0.5px solid #e0e0de;display:flex;flex-wrap:wrap;gap:4px;background:#fafaf8}
+.ctx{font-size:10px;color:#aaa;align-self:center;margin-right:2px}
+.tag{font-size:10px;font-weight:500;padding:2px 7px;border-radius:5px}
+.t-task{background:#CECBF6;color:#3C3489}
+.t-adr{background:#B5D4F4;color:#0C447C}
+.t-code{background:#C0DD97;color:#27500A}
+.t-doc{background:#FAC775;color:#633806}
+.t-result{background:#F4C0D1;color:#72243E}
+.t-tests{background:#F7C1C1;color:#791F1F}
+.t-conflict{background:#FFE5B4;color:#7A4500}
+.t-review{background:#D4EED4;color:#1A5C1A}
+.t-survey{background:#BFE3E0;color:#0E4F4A}
+.t-wfdoc{background:#D9D2EE;color:#43306B}
+/* zones */
+.card.routine{border-color:#639922}.card.routine .card-head{background:#eaf3de}.card.routine .card-name{color:#27500A}
+.card.logic{border-color:#BA7517}.card.logic .card-head{background:#faeeda}.card.logic .card-name{color:#633806}
+.card.critical{border-color:#a32d2d}.card.critical .card-head{background:#fcebeb}.card.critical .card-name{color:#791f1f}
+.card.out .card-head{background:#f4f4f2}.card.out .card-name{color:#666}
+.card.survey{border-color:#0E4F4A}.card.survey .card-head{background:#e7f3f2}.card.survey .card-name{color:#0E4F4A}
+/* tdd */
+.tdd{display:flex;gap:6px;margin-top:7px}
+.ab{flex:1;border-radius:7px;padding:7px 9px;border:0.5px solid}
+.ab.r{border-color:#a32d2d;background:#fff8f8}.ab.r .at{color:#791f1f}
+.ab.g{border-color:#639922;background:#f6fbee}.ab.g .at{color:#27500A}
+.at{font-size:11px;font-weight:600;margin-bottom:3px}
+.ap{font-size:10px;padding:2px 5px;border-radius:4px;display:inline-block;margin-top:4px}
+.ab.r .ap{background:#F7C1C1;color:#791F1F}
+.ab.g .ap{background:#C0DD97;color:#27500A}
+.arr{display:flex;align-items:center;padding:0 2px}
+/* statuses */
+.st{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;font-size:11px;margin-top:4px}
+.st.ok{background:#eaf3de;color:#3B6D11}
+.st.warn{background:#faeeda;color:#633806}
+.st.err{background:#fcebeb;color:#791f1f}
+/* output toggle */
+.out-wrap{border-top:0.5px solid #e0e0de}
+.out-btn{display:flex;align-items:center;justify-content:space-between;padding:7px 11px;cursor:pointer;background:#f4f4f2;user-select:none}
+.out-btn:hover{background:#ececea}
+.out-lbl{font-size:10px;font-weight:600;color:#666;letter-spacing:.05em;text-transform:uppercase}
+.out-btn svg{transition:transform .2s}
+.out-btn.open svg{transform:rotate(180deg)}
+.out-body{display:none}
+.out-body.open{display:block}
+pre.sc{margin:0;padding:10px 11px;font-size:10.5px;line-height:1.65;font-family:"SF Mono","Fira Code",monospace;background:#f8f8f6;color:#555;overflow-x:auto;white-space:pre;border-top:0.5px solid #e0e0de}
+.k{color:#3C3489}.s{color:#27500A}.n{color:#0C447C}.c{color:#aaa;font-style:italic}
+/* gap badge */
+.gap{font-size:10px;padding:2px 7px;border-radius:5px;background:#fff3cd;color:#856404;border:0.5px solid #ffd97d;font-style:italic}
+/* v2 marker */
+.v2{font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:#0E4F4A;color:#fff;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>spec-ship — Spec-to-Ship Pipeline <span class="v2">v2</span></h1>
+  <p>Survey → Shape → Decompose → Build (Two-Agent TDD) → Review → Delivery. Артефакты в .ship/pipeline/{slug}/, два канона знаний: .ship/docs/adr/ (решения) и .ship/docs/workflows/ (поведение).</p>
+</div>
+
+<div class="wrap">
+<div class="phases">
+
+<!-- 0a SURVEY -->
+<div class="phase">
+  <div class="phase-header"><span class="phase-num new">0a</span><span class="phase-title">Survey</span><span class="phase-hint">опционально</span></div>
+  <div class="phase-desc">Только для изменений существующего поведения — greenfield пропускает фазу. Трассировка кода от якоря, ноль правок.<br><strong>Создаёт:</strong> <span class="tag t-survey" style="font-size:10px">survey</span> Survey — доказательную карту связанного кода</div>
+  <div class="phase-skills">
+    <div class="phase-skills-lbl">Скиллы этапа</div>
+    <span class="sk">/spec-ship:survey</span>
+  </div>
+  <div class="cards">
+    <div class="card survey">
+      <div class="card-head"><div class="card-name">Survey Agent</div><div class="card-role">Dev подтверждает якорь</div></div>
+      <div class="sep"></div>
+      <div class="card-body"><ul>
+        <li>Якорь: entrypoint + изменяемое допущение + почему нелокально</li>
+        <li>Сперва <strong>.ship/docs/workflows/INDEX.md</strong>: current-доки = готовые наблюдения, трассировать только расхождения</li>
+        <li>Трассировка вверх и вниз по <strong>6 группам ответственности</strong>: entry/оркестрация, загрузчики, persistence, propagation, потребители, validation</li>
+        <li>Наблюдаемые workflow в стрелочной нотации, имена состояний из CONTEXT.md</li>
+        <li>Границы валидации + пост-валидационные контракты</li>
+        <li>files_evidence: каждый файл с причиной («найден грепом» — не причина)</li>
+      </ul>
+      <div class="card-skill">/spec-ship:survey — наблюдение, не планирование; единственная запись — сам артефакт</div>
+      </div>
+      <div class="card-foot"><span class="ctx">ctx</span><span class="tag t-wfdoc">wf-doc</span><span class="tag t-adr">adr</span><span class="tag t-code">code</span><span class="tag t-tests">tests</span></div>
+    </div>
+    <div class="card out">
+      <div class="card-head"><div class="card-name">🔍 Survey</div><div class="card-role">Артефакт этапа</div></div>
+      <div class="sep"></div>
+      <div class="card-body">До BusinessDoc живёт в .ship/pipeline/_intake/, после shape переносится в slug-директорию. Питает Shape (контекст интервью), Decompose (files_*), Build (шейп LOGIC), Delivery (doc-promote).</div>
+      <div class="card-foot"></div>
+      <div class="out-wrap">
+        <div class="out-btn" onclick="tog(this)"><span class="out-lbl">Выходной формат</span><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="out-body"><pre class="sc"><span class="c">// Survey v1</span>
+{
+  <span class="k">"$schema"</span>: <span class="s">"pipeline/survey/v1"</span>,
+  <span class="k">"id"</span>: <span class="s">"survey-2026-0007"</span>,
+  <span class="k">"business_doc_id"</span>: <span class="n">null</span>,
+  <span class="k">"anchor"</span>: {
+    <span class="k">"entrypoint"</span>: <span class="s">"TransactionRepository#findByPartner"</span>,
+    <span class="k">"changed_assumption"</span>: <span class="s">"выборка не учитывает метки"</span>,
+    <span class="k">"why_non_local"</span>: <span class="s">"задевает CH-таблицу, проекцию и отчёт"</span>
+  },
+  <span class="k">"observed_workflows"</span>: [{
+    <span class="k">"name"</span>: <span class="s">"transactions query"</span>,
+    <span class="k">"workflow"</span>: <span class="s">"запрос --загрузка--> строки CH --маппинг--> DTO --ответ--> GraphQL"</span>,
+    <span class="k">"entry_symbol"</span>: <span class="s">"src/.../TransactionResolver.php#resolve"</span>
+  }],
+  <span class="k">"connected_groups"</span>: [{
+    <span class="k">"group"</span>: <span class="s">"persistence"</span>,
+    <span class="k">"symbols"</span>: [<span class="s">"src/.../TransactionRepository.php#findByPartner"</span>],
+    <span class="k">"why_connected"</span>: <span class="s">"читает таблицу, в которую добавится метка"</span>,
+    <span class="k">"risk_if_skipped"</span>: <span class="s">"фильтр вернёт пустой результат"</span>
+  }],
+  <span class="k">"validation_boundaries"</span>: [{
+    <span class="k">"where"</span>: <span class="s">"GraphQL input type"</span>,
+    <span class="k">"post_validation_contract"</span>: <span class="s">"labels — непустой список строк"</span>,
+    <span class="k">"revalidation_required_at"</span>: <span class="n">null</span>
+  }],
+  <span class="k">"files_evidence"</span>: {
+    <span class="k">"to_change"</span>: [{ <span class="k">"path"</span>: <span class="s">"src/.../TransactionRepository.php"</span>, <span class="k">"reason"</span>: <span class="s">"новый фильтр в запросе"</span> }],
+    <span class="k">"read_only"</span>: [{ <span class="k">"path"</span>: <span class="s">"src/.../TransactionType.php"</span>, <span class="k">"reason"</span>: <span class="s">"контракт ответа не меняется"</span> }]
+  },
+  <span class="k">"adr_refs"</span>: [<span class="s">"adr-007"</span>],
+  <span class="k">"empty_groups_checked"</span>: [<span class="s">"consumers"</span>]
+}</pre></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 0 SHAPE -->
+<div class="phase">
+  <div class="phase-header"><span class="phase-num">0</span><span class="phase-title">Shape</span><span class="phase-hint">~15 мин</span></div>
+  <div class="phase-desc">Человек формулирует задачу. Интервью с батчингом вопросов, контекст из survey. Выход — замороженный Business Doc.<br><strong>Создаёт:</strong> <span class="tag t-doc" style="font-size:10px">doc</span> BusinessDoc v2 · обновляет <span class="ctx" style="font-size:10px">ctx</span> CONTEXT.md</div>
+  <div class="phase-skills">
+    <div class="phase-skills-lbl">Скиллы этапа</div>
+    <span class="sk">/spec-ship:shape-doc</span>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="card-head"><div class="card-name">Shape Agent</div><div class="card-role">BA + агент (интерактивно)</div></div>
+      <div class="sep"></div>
+      <div class="card-body"><ul>
+        <li>Принимает сырую идею или тикет</li>
+        <li>Survey есть → вопросы не «как работает?», а «что должно измениться?»</li>
+        <li>Интервью: акторы, happy/sad/edge пути, DoD, constraints</li>
+        <li><strong>Батчинг вопросов</strong> <span class="v2">v2</span>: не останавливаться на каждой неясности, копить связный батч; blocking | non_blocking (едут под явным assumption)</li>
+        <li>Ветвистые сценарии — стрелочный workflow-синтаксис в feature.workflow / ac.workflow</li>
+        <li>Гейт заморозки: blocking без resolution → НЕ апрувить</li>
+        <li>ADR-конфликт → СТОП, ADR-CONFLICT flow</li>
+      </ul>
+      <div class="card-skill">/spec-ship:shape-doc — интервью → чеклист → BusinessDoc → заморозка; переносит survey из _intake в slug</div>
+      </div>
+      <div class="card-foot"><span class="ctx">ctx</span><span class="tag t-survey">survey</span><span class="tag t-adr">adr</span><span class="tag t-doc">doc</span></div>
+    </div>
+    <div class="card out">
+      <div class="card-head"><div class="card-name">📄 Business Doc</div><div class="card-role">Артефакт этапа</div></div>
+      <div class="sep"></div>
+      <div class="card-body">Заморожен после апрува BA. Источник правды для Decomposer и Review Agent. v2: workflow-строки + open_questions.</div>
+      <div class="card-foot"></div>
+      <div class="out-wrap">
+        <div class="out-btn" onclick="tog(this)"><span class="out-lbl">Выходной формат</span><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="out-body"><pre class="sc"><span class="c">// BusinessDoc v2</span>
+{
+  <span class="k">"$schema"</span>: <span class="s">"pipeline/business-doc/v2"</span>,
+  <span class="k">"id"</span>: <span class="s">"bd-2026-0042"</span>,
+  <span class="k">"status"</span>: <span class="s">"approved"</span>, <span class="c">// draft|approved|frozen</span>
+  <span class="k">"feature"</span>: {
+    <span class="k">"title"</span>: <span class="s">"Фильтрация транзакций по меткам"</span>,
+    <span class="k">"goal"</span>: <span class="s">"Партнёр фильтрует транзакции..."</span>,
+    <span class="k">"actors"</span>: [<span class="s">"partner"</span>],
+    <span class="k">"priority"</span>: <span class="s">"high"</span>,
+    <span class="k">"workflow"</span>: <span class="s">"метка выбрана --фильтр--> [совпадения есть --вывод--> список, нет --вывод--> пусто]"</span> <span class="c">// v2</span>
+  },
+  <span class="k">"acceptance_criteria"</span>: [{
+    <span class="k">"id"</span>: <span class="s">"ac-1"</span>,
+    <span class="k">"scenario"</span>: <span class="s">"happy"</span>,
+    <span class="k">"given"</span>: <span class="s">"Партнёр имеет транзакции с метками"</span>,
+    <span class="k">"when"</span>: <span class="s">"Фильтрует по метке sale"</span>,
+    <span class="k">"then"</span>: <span class="s">"Возвращает только транзакции sale"</span>,
+    <span class="k">"workflow"</span>: <span class="s">"транзакции с метками --фильтр sale--> только sale"</span> <span class="c">// v2, дубль для ветвистых</span>
+  }],
+  <span class="k">"open_questions"</span>: [{ <span class="c">// v2</span>
+    <span class="k">"id"</span>: <span class="s">"q-1"</span>,
+    <span class="k">"severity"</span>: <span class="s">"non_blocking"</span>, <span class="c">// blocking|non_blocking</span>
+    <span class="k">"question"</span>: <span class="s">"регистрозависимость меток?"</span>,
+    <span class="k">"assumption"</span>: <span class="s">"метки case-sensitive как в CH"</span>,
+    <span class="k">"resolution"</span>: <span class="n">null</span>
+  }],
+  <span class="k">"definition_of_done"</span>: [<span class="s">"p95 &lt; 200ms при 10k транзакций"</span>],
+  <span class="k">"constraints"</span>: [<span class="s">"Только ClickHouse"</span>],
+  <span class="k">"adr_refs"</span>: [<span class="s">"adr-007"</span>],
+  <span class="k">"conflicts"</span>: [],
+  <span class="k">"approved_by"</span>: <span class="s">"ba:sergey"</span>
+}</pre></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 1 DECOMPOSE -->
+<div class="phase">
+  <div class="phase-header"><span class="phase-num">1</span><span class="phase-title">Decompose</span><span class="phase-hint">авто</span></div>
+  <div class="phase-desc">Агент разбивает фичу на вертикальные слайсы, классифицирует по зоне доверия формальными признаками.<br><strong>Создаёт:</strong> <span class="tag t-task" style="font-size:10px">task</span> TaskSpec v2 ×N · <span class="tag t-conflict" style="font-size:10px">conflict</span> TestUpdateTicket (при конфликте теста)</div>
+  <div class="phase-skills">
+    <div class="phase-skills-lbl">Скиллы этапа</div>
+    <span class="sk">/spec-ship:decompose</span>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="card-head"><div class="card-name">Decompose Agent</div><div class="card-role">Автономно + апрув разбивки BA</div></div>
+      <div class="sep"></div>
+      <div class="card-body"><ul>
+        <li>Гейт <span class="v2">v2</span>: blocking-вопрос без resolution → СТОП, не декомпозировать</li>
+        <li>Вертикальные слайсы: каждый задевает все слои, маппится на ≥1 AC</li>
+        <li><strong>trust_zone формально</strong> <span class="v2">v2</span>: интерфейса хватает → ROUTINE (shape: null); нужны структуры/алгоритм → LOGIC (скелет shape: proposal); миграции/целостность → CRITICAL</li>
+        <li>files_to_change / files_read_only из survey files_evidence — доказательно, не из головы</li>
+        <li>ac.workflow → test_scenarios.workflow: ветки [...] дают отдельные сценарии</li>
+        <li>TestUpdateTicket при конфликте с существующими тестами</li>
+      </ul>
+      <div class="card-skill">/spec-ship:decompose — декомпозиция + валидация покрытия AC + сохранение task-*.json</div>
+      </div>
+      <div class="card-foot"><span class="ctx">ctx</span><span class="tag t-doc">doc</span><span class="tag t-survey">survey</span><span class="tag t-code">code</span><span class="tag t-adr">adr</span></div>
+    </div>
+    <div class="card out">
+      <div class="card-head"><div class="card-name">📋 TaskSpec (×N)</div><div class="card-role">Артефакт этапа — один на задачу</div></div>
+      <div class="sep"></div>
+      <div class="card-body">v2: поле shape (план LOGIC, персистентный) + test_scenarios с workflow/input/expected_outcome — контракт для RED.</div>
+      <div class="card-foot"></div>
+      <div class="out-wrap">
+        <div class="out-btn" onclick="tog(this)"><span class="out-lbl">Выходной формат</span><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="out-body"><pre class="sc"><span class="c">// TaskSpec v2</span>
+{
+  <span class="k">"$schema"</span>: <span class="s">"pipeline/task-spec/v2"</span>,
+  <span class="k">"id"</span>: <span class="s">"task-0042-03"</span>,
+  <span class="k">"business_doc_id"</span>: <span class="s">"bd-2026-0042"</span>,
+  <span class="k">"trust_zone"</span>: <span class="s">"LOGIC"</span>, <span class="c">// ROUTINE|LOGIC|CRITICAL</span>
+  <span class="k">"title"</span>: <span class="s">"GraphQL resolver: фильтр по меткам"</span>,
+  <span class="k">"spec"</span>: {
+    <span class="k">"description"</span>: <span class="s">"Реализовать резолвер transactionsByLabel"</span>,
+    <span class="k">"interface"</span>: {
+      <span class="k">"input"</span>:  { <span class="k">"labels"</span>: <span class="s">"String[]"</span> },
+      <span class="k">"output"</span>: { <span class="k">"items"</span>: <span class="s">"Transaction[]"</span> }
+    },
+    <span class="k">"files_to_change"</span>: [<span class="s">"src/.../TransactionResolver.php"</span>],
+    <span class="k">"files_read_only"</span>: [<span class="s">"src/.../TransactionType.php"</span>]
+  },
+  <span class="k">"shape"</span>: { <span class="c">// v2; null для ROUTINE/CRITICAL</span>
+    <span class="k">"status"</span>: <span class="s">"proposal"</span>, <span class="c">// proposal|approved — GREEN только при approved</span>
+    <span class="k">"approach"</span>: <span class="s">"ARRAY JOIN по меткам вместо subquery"</span>,
+    <span class="k">"intermediate_structures"</span>: [{
+      <span class="k">"name"</span>: <span class="s">"tx_index_by_label"</span>,
+      <span class="k">"derived_from"</span>: <span class="s">"строки CH"</span>,
+      <span class="k">"consumed_by"</span>: <span class="s">"шаг фильтрации"</span>,
+      <span class="k">"invariants"</span>: [<span class="s">"метки нормализованы на входе"</span>]
+    }],
+    <span class="k">"ordering_rules"</span>: [],
+    <span class="k">"open_for_developer"</span>: [<span class="s">"стратегия пагинации"</span>],
+    <span class="k">"approved_by"</span>: <span class="n">null</span>
+  },
+  <span class="k">"test_scenarios"</span>: [{
+    <span class="k">"id"</span>: <span class="s">"ts-1"</span>,
+    <span class="k">"scenario"</span>: <span class="s">"happy"</span>,
+    <span class="k">"description"</span>: <span class="s">"Фильтр по метке → правильные данные"</span>,
+    <span class="k">"workflow"</span>: <span class="s">"транзакции с метками --фильтр sale--> только sale"</span>, <span class="c">// v2</span>
+    <span class="k">"input"</span>: <span class="s">"3 tx: sale, sale, refund"</span>,
+    <span class="k">"expected_outcome"</span>: <span class="s">"ровно 2 tx sale"</span>
+  }],
+  <span class="k">"dependencies"</span>: { <span class="k">"depends_on"</span>: [<span class="s">"task-0042-01"</span>], <span class="k">"blocks"</span>: [] },
+  <span class="k">"adr_refs"</span>: [<span class="s">"adr-007"</span>],
+  <span class="k">"validation"</span>: { <span class="k">"business_doc_coverage"</span>: [<span class="s">"ac-1"</span>], <span class="k">"risk"</span>: <span class="s">"low"</span> }
+}</pre></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2 BUILD -->
+<div class="phase" style="flex:1.6">
+  <div class="phase-header"><span class="phase-num">2</span><span class="phase-title">Build</span><span class="phase-hint">параллельно / ночью</span></div>
+  <div class="phase-desc">Три трека по зоне доверия. ROUTINE автономно. Шейп LOGIC персистится в TaskSpec.shape — не испаряется с сессией.<br><strong>Создаёт:</strong> <span class="tag t-tests" style="font-size:10px">tests</span> тесты (ship-red) · <span class="tag t-code" style="font-size:10px">code</span> реализацию (ship-green) · <span class="tag t-result" style="font-size:10px">task-result</span> BuildReport · <span class="tag t-adr" style="font-size:10px">adr</span> ADREntry (кандидат)</div>
+  <div class="phase-skills">
+    <div class="phase-skills-lbl">Скиллы этапа</div>
+    <span class="sk">/spec-ship:build</span>
+  </div>
+  <div class="cards">
+    <div class="card routine">
+      <div class="card-head"><div class="card-name">Two-Agent TDD</div><div class="card-role">ROUTINE — полностью автономно</div></div>
+      <div class="sep"></div>
+      <div class="card-body">
+        <div class="tdd">
+          <div class="ab r">
+            <div class="at">Agent RED</div>
+            <div style="font-size:10px;color:#666">Тест на каждый сценарий. v2: workflow/input/expected_outcome — контракт: arrange из input, assert ровно expected_outcome. Не видит src → тесты честные.</div>
+            <div class="ap">только tests/</div>
+          </div>
+          <div class="arr"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 7h10M8 3l4 4-4 4" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="ab g">
+            <div class="at">Agent GREEN</div>
+            <div style="font-size:10px;color:#666">Цель: все тесты зелёные. Не может трогать тесты. v2: docstring называет ts-id и шаг workflow (traceability).</div>
+            <div class="ap">только files_to_change</div>
+          </div>
+        </div>
+        <div style="margin-top:7px;font-size:11px;color:#666">Эскалации <span class="v2">v2</span>: RED blocked / GREEN за N итераций → скелет shape (proposal, причина → open_for_developer) → трек LOGIC. GREEN конфликт → TestUpdateTicket, стоп.</div>
+        <div class="card-skill">/spec-ship:build — оркестратор: сабагенты ship-red + ship-green, изолированные права = физический барьер</div>
+        <div class="card-skill">/spec-ship:build — ADR Writer: hard-to-reverse решения → adr-entry-*.json (Proposed)</div>
+      </div>
+      <div class="card-foot"><span class="ctx">ctx</span><span class="tag t-task">task</span><span class="tag t-result">task-result</span><span class="tag t-adr">adr</span><span class="tag t-code">code</span><span class="tag t-tests">tests</span></div>
+    </div>
+    <div class="card logic">
+      <div class="card-head"><div class="card-name">Dev + Assistant Agent</div><div class="card-role">LOGIC — нестандартные задачи</div></div>
+      <div class="sep"></div>
+      <div class="card-body"><ul>
+        <li>Шейп-сессия ~15 мин; повестка = shape.open_for_developer, контекст = survey.observed_workflows</li>
+        <li>Результат пишется <strong>в поле shape TaskSpec</strong> <span class="v2">v2</span>; Dev апрувит → status: approved</li>
+        <li>GREEN запускается только при approved, реализует по артефакту — не по пересказу</li>
+        <li>Сюда же эскалации из ROUTINE (скелет shape уже создан)</li>
+      </ul>
+      <div class="card-skill">/spec-ship:build — трек LOGIC: шейп в сессии → фиксация в shape → ship-red + ship-green</div>
+      </div>
+      <div class="card-foot"><span class="ctx">ctx</span><span class="tag t-task">task</span><span class="tag t-survey">survey</span><span class="tag t-result">task-result</span><span class="tag t-tests">tests</span><span class="tag t-code">code</span></div>
+    </div>
+    <div class="card critical">
+      <div class="card-head"><div class="card-name">Dev only</div><div class="card-role">CRITICAL — риск данных / безопасность</div></div>
+      <div class="sep"></div>
+      <div class="card-body"><ul>
+        <li>Агент — только консультант, без автономных изменений</li>
+        <li>Сабагенты НЕ вызываются, ноль автозаписи</li>
+        <li>Полная ответственность Dev</li>
+      </ul>
+      <div class="card-skill">/spec-ship:build — трек CRITICAL: tdd-блоки BuildReport = null, отметка "Dev-implemented"</div>
+      </div>
+      <div class="card-foot"><span class="ctx">ctx</span><span class="tag t-task">task</span><span class="tag t-adr">adr</span></div>
+    </div>
+    <div class="card out">
+      <div class="card-head"><div class="card-name">📦 BuildReport + ADREntry</div><div class="card-role">Артефакты этапа</div></div>
+      <div class="sep"></div>
+      <div class="card-body">BuildReport фиксирует итерации GREEN, эскалации, self-review. ADREntry — кандидат (Proposed) на каждое архитектурное решение.</div>
+      <div class="card-foot"></div>
+      <div class="out-wrap">
+        <div class="out-btn" onclick="tog(this)"><span class="out-lbl">Выходной формат — BuildReport</span><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="out-body"><pre class="sc"><span class="c">// BuildReport v1</span>
+{
+  <span class="k">"$schema"</span>: <span class="s">"pipeline/build-report/v1"</span>,
+  <span class="k">"id"</span>: <span class="s">"build-0042-03"</span>,
+  <span class="k">"task_spec_id"</span>: <span class="s">"task-0042-03"</span>,
+  <span class="k">"trust_zone"</span>: <span class="s">"ROUTINE"</span>,
+  <span class="k">"tdd"</span>: {
+    <span class="k">"agent_red"</span>: {
+      <span class="k">"status"</span>: <span class="s">"done"</span>, <span class="c">// done|blocked</span>
+      <span class="k">"tests_written"</span>: <span class="n">5</span>,
+      <span class="k">"all_red_confirmed"</span>: <span class="n">true</span>
+    },
+    <span class="k">"agent_green"</span>: {
+      <span class="k">"status"</span>: <span class="s">"done"</span>, <span class="c">// done|escalated|conflict</span>
+      <span class="k">"iterations"</span>: <span class="n">2</span>,
+      <span class="k">"files_changed"</span>: [<span class="s">"src/.../TransactionResolver.php"</span>],
+      <span class="k">"all_green_confirmed"</span>: <span class="n">true</span>,
+      <span class="k">"conflict"</span>: <span class="n">null</span>
+    }
+  },
+  <span class="k">"escalation"</span>: <span class="n">null</span>,
+  <span class="k">"adr_entries"</span>: [<span class="s">"adr-entry-0042-a"</span>],
+  <span class="k">"self_review"</span>: {
+    <span class="k">"spec_coverage"</span>: <span class="n">true</span>,
+    <span class="k">"adr_violations"</span>: [],
+    <span class="k">"notes"</span>: <span class="s">"Cursor-based подход согласно ADR-007"</span>
+  }
+}</pre></div>
+      </div>
+      <div class="out-wrap">
+        <div class="out-btn" onclick="tog(this)"><span class="out-lbl">Выходной формат — ADREntry</span><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="out-body"><pre class="sc"><span class="c">// ADREntry v1</span>
+{
+  <span class="k">"$schema"</span>: <span class="s">"pipeline/adr-entry/v1"</span>,
+  <span class="k">"id"</span>: <span class="s">"adr-entry-0042-a"</span>,
+  <span class="k">"task_spec_id"</span>: <span class="s">"task-0042-03"</span>,
+  <span class="k">"status"</span>: <span class="s">"proposed"</span>, <span class="c">// proposed|promoted</span>
+  <span class="k">"decision"</span>: <span class="s">"ARRAY JOIN вместо subquery"</span>,
+  <span class="k">"context"</span>: <span class="s">"Subquery давал full scan по partition"</span>,
+  <span class="k">"consequences"</span>: [<span class="s">"p95 45ms vs 380ms"</span>],
+  <span class="k">"alternatives_considered"</span>: [<span class="s">"subquery"</span>, <span class="s">"MV"</span>],
+  <span class="k">"files_ref"</span>: [<span class="s">"src/.../TransactionRepository.php:87"</span>],
+  <span class="k">"adr_refs_used"</span>: [<span class="s">"adr-007"</span>]
+}</pre></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3 REVIEW -->
+<div class="phase">
+  <div class="phase-header"><span class="phase-num">3</span><span class="phase-title">Review</span><span class="phase-hint">асинхронно</span></div>
+  <div class="phase-desc">Агент проверяет соответствие spec и ADR. Человек подключается только при ESCALATE.<br><strong>Создаёт:</strong> <span class="tag t-review" style="font-size:10px">review</span> ReviewReport (APPROVED / NEEDS_WORK / ESCALATE) · гейт mr_ready</div>
+  <div class="phase-skills">
+    <div class="phase-skills-lbl">Скиллы этапа</div>
+    <span class="sk">/spec-ship:review</span>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="card-head"><div class="card-name">Review Agent</div><div class="card-role">Автономно</div></div>
+      <div class="sep"></div>
+      <div class="card-body">
+        <ul>
+          <li>Реализация соответствует spec.interface</li>
+          <li>Все test_scenarios покрыты; <span class="v2">v2</span>: тест ассертит ровно expected_outcome, не ослабленную версию</li>
+          <li>ADR не нарушены, нет ссылок на Expired</li>
+          <li>Нет регрессий в смежных модулях</li>
+          <li>Performance против DoD</li>
+        </ul>
+        <div class="st ok">✓ APPROVED → MR</div>
+        <div class="st warn">↻ NEEDS_WORK → итерация</div>
+        <div class="st err">↑ ESCALATE → Dev</div>
+        <div class="card-skill">/spec-ship:review — 5-чеклист: spec_coverage, test_scenarios_covered, adr_violations, regressions, performance</div>
+      </div>
+      <div class="card-foot"><span class="ctx">ctx</span><span class="tag t-task">task</span><span class="tag t-adr">adr</span><span class="tag t-result">task-result</span></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-name">TEST-UPDATE flow</div><div class="card-role">При устаревшем тесте</div></div>
+      <div class="sep"></div>
+      <div class="card-body"><ul>
+        <li><strong>Обнаруживает:</strong> Decomposer, GREEN при конфликте, CI</li>
+        <li>Отдельный тикет, никогда inline-правка</li>
+        <li>Agent RED обновляет тест (НЕ GREEN), Review проверяет честность</li>
+        <li>pending-тикет → блок MR</li>
+      </ul>
+      <div class="card-skill">/spec-ship:review — tu-*.json pending → blocking issue, mr_ready: false</div>
+      </div>
+      <div class="card-foot"><span class="ctx">ctx</span><span class="tag t-task">task</span><span class="tag t-conflict">conflict</span></div>
+    </div>
+    <div class="card out">
+      <div class="card-head"><div class="card-name">📋 ReviewReport</div><div class="card-role">Артефакт этапа</div></div>
+      <div class="sep"></div>
+      <div class="card-body">Структурированный чеклист с вердиктом. MR открывается только если <code style="font-size:10px;background:#f0f0ee;padding:1px 4px;border-radius:3px">mr_ready: true</code>.</div>
+      <div class="card-foot"></div>
+      <div class="out-wrap">
+        <div class="out-btn" onclick="tog(this)"><span class="out-lbl">Выходной формат — ReviewReport</span><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="out-body"><pre class="sc"><span class="c">// ReviewReport v1</span>
+{
+  <span class="k">"$schema"</span>: <span class="s">"pipeline/review-report/v1"</span>,
+  <span class="k">"id"</span>: <span class="s">"review-0042-03"</span>,
+  <span class="k">"build_report_id"</span>: <span class="s">"build-0042-03"</span>,
+  <span class="k">"verdict"</span>: <span class="s">"APPROVED"</span>, <span class="c">// APPROVED|NEEDS_WORK|ESCALATE</span>
+  <span class="k">"checklist"</span>: {
+    <span class="k">"spec_coverage"</span>:          { <span class="k">"pass"</span>: <span class="n">true</span> },
+    <span class="k">"test_scenarios_covered"</span>: { <span class="k">"pass"</span>: <span class="n">true</span>, <span class="k">"notes"</span>: <span class="s">"5/5"</span> },
+    <span class="k">"adr_violations"</span>:         { <span class="k">"pass"</span>: <span class="n">true</span> },
+    <span class="k">"regressions"</span>:            { <span class="k">"pass"</span>: <span class="n">true</span> },
+    <span class="k">"performance"</span>:            { <span class="k">"pass"</span>: <span class="n">true</span>, <span class="k">"notes"</span>: <span class="s">"p95 45ms &lt; 200ms"</span> }
+  },
+  <span class="k">"issues"</span>: [],
+  <span class="k">"escalation"</span>: <span class="n">null</span>,
+  <span class="k">"mr_ready"</span>: <span class="n">true</span>
+}</pre></div>
+      </div>
+      <div class="out-wrap">
+        <div class="out-btn" onclick="tog(this)"><span class="out-lbl">Выходной формат — TestUpdateTicket</span><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="out-body"><pre class="sc"><span class="c">// TestUpdateTicket v1</span>
+{
+  <span class="k">"$schema"</span>: <span class="s">"pipeline/test-update-ticket/v1"</span>,
+  <span class="k">"id"</span>: <span class="s">"tu-0042-03"</span>,
+  <span class="k">"detected_by"</span>: <span class="s">"agent_green"</span>, <span class="c">// agent_green|decomposer|ci</span>
+  <span class="k">"conflict"</span>: {
+    <span class="k">"test_file"</span>: <span class="s">"tests/.../TransactionsByLabelTest.php"</span>,
+    <span class="k">"current_expectation"</span>: <span class="s">"Возвращает 404"</span>,
+    <span class="k">"spec_expectation"</span>: <span class="s">"Возвращает 200 + пустой список"</span>,
+    <span class="k">"spec_ref"</span>: <span class="s">"ac-2"</span>
+  },
+  <span class="k">"resolution"</span>: {
+    <span class="k">"status"</span>: <span class="s">"pending"</span>, <span class="c">// pending|approved|rejected</span>
+    <span class="k">"agent_red_action"</span>: <span class="s">"Обновить assertion"</span>,
+    <span class="k">"approved_by"</span>: <span class="n">null</span>
+  }
+}</pre></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4 DELIVERY -->
+<div class="phase">
+  <div class="phase-header"><span class="phase-num">4</span><span class="phase-title">Delivery</span></div>
+  <div class="phase-desc">Мерж и накопление знаний. Maintainer промоутит кандидатов в два канона: решения → .ship/docs/adr/, поведение → .ship/docs/workflows/.<br><strong>Создаёт:</strong> <span class="tag t-adr" style="font-size:10px">adr</span> ADR-NNN.md канон · <span class="tag t-wfdoc" style="font-size:10px">wf-doc</span> .ship/docs/workflows/*.md канон</div>
+  <div class="phase-skills">
+    <div class="phase-skills-lbl">Скиллы этапа</div>
+    <span class="sk">/spec-ship:adr-promote</span>
+    <span class="sk">/spec-ship:doc-promote</span>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="card-head"><div class="card-name">MR → Maintainer</div><div class="card-role">Минимальная нагрузка</div></div>
+      <div class="sep"></div>
+      <div class="card-body"><ul>
+        <li>ROUTINE + APPROVED: мержится с минимальным взглядом</li>
+        <li>Maintainer смотрит только ESCALATE или CRITICAL</li>
+      </ul>
+      <div class="card-skill">/spec-ship:adr-promote — adr-entry (Proposed) → .ship/docs/adr/ADR-NNN.md (Accepted) + INDEX</div>
+      </div>
+      <div class="card-foot"><span class="tag t-adr">adr</span><span class="tag t-review">review</span></div>
+    </div>
+    <div class="card survey">
+      <div class="card-head"><div class="card-name">Doc Promote <span class="v2">v2</span></div><div class="card-role">Канон поведения — после мёржа MR</div></div>
+      <div class="sep"></div>
+      <div class="card-body"><ul>
+        <li>survey (поведение ДО) + bd workflow/AC (ПОСЛЕ) → .ship/docs/workflows/&lt;area&gt;-*.md</li>
+        <li>Формат: Definitions, workflow в стрелочной нотации, словарь состояний</li>
+        <li>INDEX со статусами: <strong>current / partially-outdated / superseded</strong></li>
+        <li>Задетые чужие доки помечаются — ничто не лжёт молча</li>
+        <li>Замыкание цикла: следующий survey по области читает current-доки вместо повторной трассировки</li>
+      </ul>
+      <div class="card-skill">/spec-ship:doc-promote — выборка только через INDEX по Area, как у ADR</div>
+      </div>
+      <div class="card-foot"><span class="tag t-survey">survey</span><span class="tag t-doc">doc</span><span class="tag t-task">task</span><span class="tag t-wfdoc">wf-doc</span></div>
+    </div>
+    <div class="card out">
+      <div class="card-head"><div class="card-name">📚 Два канона</div><div class="card-role">Долгоживущее знание</div></div>
+      <div class="sep"></div>
+      <div class="card-body">ADR — «почему решили так». Workflow-док — «как система себя ведёт». Пайплайн-артефакты в .ship/pipeline/ — одноразовый аудит-след.</div>
+      <div class="card-foot"></div>
+      <div class="out-wrap">
+        <div class="out-btn" onclick="tog(this)"><span class="out-lbl">Формат — .ship/docs/workflows/*.md</span><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="out-body"><pre class="sc"><span class="c"># importer-money-flow-dedup.md</span>
+
+<span class="k">**Status:**</span> current
+<span class="k">**Area:**</span> importer
+<span class="k">**Source:**</span> bd-2026-0002, survey-2026-0002
+
+<span class="k">## Definitions</span>
+<span class="s">### affiliate_referral_money_flow</span>
+Type: таблица ClickHouse
+Purpose: денежные потоки рефералов
+
+<span class="k">## Workflows</span>
+<span class="s">### import dedup</span>
+`батч получен --insert с query_id--> строки
+  --[дубль query_id --скип--> без вставки,
+     новый --вставка--> строка]`
+
+<span class="k">## State Name Dictionary</span>
+| батч получен | KafkaBatch |
+| строка       | affiliate_referral_money_flow |</pre></div>
+      </div>
+      <div class="out-wrap">
+        <div class="out-btn" onclick="tog(this)"><span class="out-lbl">Формат — .ship/docs/workflows/INDEX.md</span><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="out-body"><pre class="sc">| Document | Status | Area | Source | Updated |
+| --- | --- | --- | --- | --- |
+| importer-money-flow-dedup.md | <span class="s">current</span> | importer | bd-2026-0002 | 2026-06-11 |
+| reports-revshare-totals.md | <span class="c">partially-outdated</span> | reports | bd-2026-0004 | 2026-05-02 |</pre></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+<script>
+function tog(btn){
+  btn.classList.toggle('open');
+  btn.nextElementSibling.classList.toggle('open');
+}
+</script>
+
+<div style="padding:16px 20px 24px;border-top:1.5px solid #e0e0de;margin-top:8px">
+  <div style="font-size:11px;font-weight:600;color:#888;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px">Контексты карточек</div>
+  <div style="display:flex;flex-direction:column;gap:8px;font-size:11px;color:#555">
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-survey" style="flex-shrink:0">survey</span><span><strong>survey-*.json — Survey</strong> — якорь, наблюдаемые workflow, связанные группы, files_evidence. <em>Создаёт /spec-ship:survey (Phase 0a). Питает Shape, Decompose, Build (шейп LOGIC), Doc Promote.</em></span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-doc" style="flex-shrink:0">doc</span><span><strong>bd-*.json — BusinessDoc v2</strong> — требования, AC (+workflow), DoD, open_questions. <em>Создаёт /spec-ship:shape-doc (Phase 0). Замораживается после апрува BA; blocking-вопросы без resolution блокируют заморозку.</em></span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-task" style="flex-shrink:0">task</span><span><strong>task-*.json — TaskSpec v2</strong> — интерфейс, файлы, test_scenarios (workflow/input/expected_outcome), trust_zone, shape. <em>Создаёт /spec-ship:decompose (Phase 1). Поле shape — единственная разрешённая поздняя правка (шейп-сессия Build).</em></span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-result" style="flex-shrink:0">task-result</span><span><strong>build-*.json — BuildReport</strong> — итерации TDD, эскалации, self-review. <em>Создаёт /spec-ship:build (Phase 2). Читается /spec-ship:review на Phase 3.</em></span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-adr" style="flex-shrink:0">adr</span><span><strong>adr-entry-*.json — ADREntry</strong> — архитектурное решение (кандидат Proposed). <em>Создаёт /spec-ship:build (Phase 2). Промоутится /spec-ship:adr-promote → .ship/docs/adr/ADR-NNN.md на Delivery.</em></span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-wfdoc" style="flex-shrink:0">wf-doc</span><span><strong>.ship/docs/workflows/*.md — канон поведения</strong> — Definitions, workflow-трассы, словарь состояний; INDEX со статусами current / partially-outdated / superseded. <em>Создаёт /spec-ship:doc-promote (Delivery, после мёржа). Читается survey вместо повторной трассировки.</em></span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-code" style="flex-shrink:0">code</span><span><strong>src/ — исходный код</strong> — читается для понимания интерфейсов. <em>Пишет только ship-green (Phase 2), и только files_to_change.</em></span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-tests" style="flex-shrink:0">tests</span><span><strong>tests/ — тесты</strong> — контракт между RED и GREEN. <em>Пишет только ship-red. ship-green не трогает. Обновление — только через TestUpdateTicket + апрув.</em></span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-conflict" style="flex-shrink:0">conflict</span><span><strong>tu-*.json — TestUpdateTicket</strong> — конфликт существующего теста с новым spec. <em>Создаёт decompose (Phase 1) или build (Phase 2). Разрешает Agent RED + апрув maintainer.</em></span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-review" style="flex-shrink:0">review</span><span><strong>review-*.json — ReviewReport</strong> — вердикт APPROVED / NEEDS_WORK / ESCALATE + чеклист 5 проверок. <em>Создаёт /spec-ship:review (Phase 3). Гейт mr_ready: true → MR.</em></span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="ctx" style="flex-shrink:0">ctx</span><span><strong>CONTEXT.md — доменный глоссарий</strong> — термины проекта, имена состояний workflow на всех уровнях. <em>Читается на всех фазах. Обновляется на Phase 0.</em></span></div>
+  </div>
+</div>
+
+</body>
+</html>
