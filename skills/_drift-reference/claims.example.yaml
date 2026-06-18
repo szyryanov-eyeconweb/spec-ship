@@ -1,0 +1,21 @@
+# claims.yaml — контракт между каноном .ship/docs/ и кодом проекта.
+# Положить в .ship/docs/claims.yaml проекта-потребителя; пути source.path —
+# относительно корня репо. Чекер: check_drift.py (та же папка reference).
+#
+# Типы: symbol-exists | enum-values | pointer-only (см. шапку check_drift.py).
+# exit 1 при FAIL; отсутствующий source-файл → SKIP (не fail).
+
+- id: example-symbol-exists
+  doc: workflows/some-area-feature.md
+  type: symbol-exists
+  source: { path: src/Path/To/SomeService.php, symbol: SomeService }
+
+- id: example-enum-values
+  doc: workflows/some-area-feature.md
+  type: enum-values
+  source: { path: src/Domain/Entity/SomeStatus.php, symbol: SomeStatus }
+
+- id: example-pointer
+  doc: workflows/some-area-feature.md
+  type: pointer-only
+  source: { path: src/Domain/Entity/Currency.php, symbol: Currency }
