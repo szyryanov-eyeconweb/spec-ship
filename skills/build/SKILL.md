@@ -1,23 +1,23 @@
 ---
 name: build
-description: Оркеструет билд TaskSpec по trust_zone — ROUTINE делегирует сабагентам ship-red+ship-green (Two-Agent TDD), LOGIC шейпит в основной сессии затем делегирует, CRITICAL только консультирует. Производит BuildReport v1 + ADREntry v1 JSON. Использовать когда есть TaskSpec, или когда пользователь говорит "build task", "implement task", "phase 2", "run TDD", "собери задачу".
+description: Оркеструет билд TaskSpec по trust_zone — ROUTINE делегирует сабагентам ship-red+ship-green (Two-Agent TDD), LOGIC шейпит в основной сессии затем делегирует, CRITICAL только консультирует. Производит BuildReport + ADREntry JSON. Использовать когда есть TaskSpec, или когда пользователь говорит "build task", "implement task", "phase 2", "run TDD", "собери задачу".
 ---
 
 # Ship Build
 
-Оркеструет билд `TaskSpec v1` по `trust_zone` и производит `BuildReport v1` + опционально `ADREntry v1` в `.ship/pipeline/{slug}/`. Сам код не пишет — делегирует сабагентам (ROUTINE/LOGIC) или консультирует (CRITICAL).
+Оркеструет билд `TaskSpec` по `trust_zone`, производит `BuildReport` + опционально `ADREntry` в `.ship/pipeline/{slug}/`. Код не пишет — делегирует сабагентам (ROUTINE/LOGIC) или консультирует (CRITICAL).
 
 ## Pre-flight
 
-- Загрузить `TaskSpec` из `.ship/pipeline/{slug}/task-*.json` (спросить id если неоднозначно; slug выводится из `id` BusinessDoc + `feature.title`: `{bd-id}-{4-6-слов-kebab}`).
-- Проверить `shape` (v2; в v1-артефактах поля нет — читать как `null`): LOGIC без `shape` или со `status: "proposal"` → шейп-сессия обязательна до вызова сабагентов. LOGIC со `status: "approved"` → шейп уже готов, сессию можно сократить до подтверждения актуальности.
-- Загрузить `Survey` из `.ship/pipeline/{slug}/survey-*.json`, если есть: `observed_workflows` и `validation_boundaries` — стартовый контекст шейп-сессии LOGIC (не пере-трассировать код заново), `connected_groups.risk_if_skipped` — чеклист рисков для self-review.
+- Загрузить `TaskSpec` из `.ship/pipeline/{slug}/task-*.json` (спросить id если неоднозначно; slug — по правилу из [CANON.md](../CANON.md)).
+- Проверить `shape`: LOGIC без `shape` или `status: "proposal"` → шейп-сессия обязательна до сабагентов. `status: "approved"` → шейп готов, сессия сокращается до подтверждения актуальности.
+- Загрузить `Survey` из `.ship/pipeline/{slug}/survey-*.json`, если есть: `observed_workflows` + `validation_boundaries` — стартовый контекст шейп-сессии LOGIC (не пере-трассировать код), `connected_groups.risk_if_skipped` — чеклист рисков для self-review.
 - Прочитать `CONTEXT.md` и `spec.files_read_only`.
-- Резолвить `adr_refs` из TaskSpec через `.ship/docs/adr/INDEX.md` — загрузить тела только этих ADR (уже отфильтрованы на decompose). Если какой-то `adr_ref` оказался `Status: Expired` → ADR-CONFLICT (ссылка на устаревший ADR).
+- Резолвить `adr_refs` через `.ship/docs/adr/INDEX.md` — тела только этих ADR (отфильтрованы на decompose). `adr_ref` со `Status: Expired` → ADR-CONFLICT (ссылка на устаревший ADR).
 
 ## Маршрутизация по trust_zone
 
-Этот скилл — ОРКЕСТРАТОР. Читает `trust_zone` и выбирает трек. Рассуждающая модель (основная сессия) там где нужно мышление; исполнительная модель (сабагенты) там где исполнение по спеке. Конкретные модели задаются в `model:` сабагентов и в настройке сессии — НЕ хардкодить имена здесь.
+Скилл — ОРКЕСТРАТОР: читает `trust_zone`, выбирает трек. Рассуждающая модель (сессия) — где мышление; исполнительная (сабагенты) — где исполнение по спеке. Модели заданы в `model:` сабагентов и настройке сессии — НЕ хардкодить имена здесь.
 
 | trust_zone | Кто строит | Где рассуждение | Механизм |
 |---|---|---|---|
@@ -29,51 +29,51 @@ description: Оркеструет билд TaskSpec по trust_zone — ROUTINE 
 
 ## Трек ROUTINE — Two-Agent TDD через сабагентов
 
-Оркестратор НЕ пишет код сам. Делегирует двум сабагентам с изолированными правами. Контракт между ними — тестовый набор.
+Оркестратор код не пишет. Делегирует двум сабагентам с изолированными правами. Контракт между ними — тестовый набор.
 
 ### 1. RED — сабагент `ship-red` (права только `tests/`)
 
-Вызвать `ship-red` через Agent tool. Передать в промпте: содержимое TaskSpec (`spec.interface`, `test_scenarios[]`, `data[]`, `files_*`) + путь результата.
+Вызвать `ship-red` через Agent tool. Передать: TaskSpec (`spec.interface`, `test_scenarios[]`, `data[]`, `files_*`) + путь результата.
 
-`ship-red` пишет по одному падающему тесту на сценарий, подтверждает ALL RED, возвращает `agent_red` блок. Физически не может писать в `src/` → тесты честные.
+`ship-red` пишет по одному падающему тесту на сценарий, подтверждает ALL RED, возвращает `agent_red`. Физически не пишет в `src/` → тесты честные.
 
 Обработка исхода RED:
 
 | Исход от ship-red | Действие оркестратора |
 |---|---|
 | `status: done` | перейти к GREEN |
-| `status: blocked` | RED не смог написать честный тест (интерфейс неоднозначен / нетестируемо / нет seam). Переклассифицировать в LOGIC: создать в TaskSpec скелет `shape` (`status: "proposal"`, `blocker` RED → `open_for_developer`) → дошейпить интерфейс с Dev. STOP, GREEN не вызывать. |
+| `status: blocked` | RED не смог написать честный тест (интерфейс неоднозначен / нетестируемо / нет seam). Переклассифицировать в LOGIC: скелет `shape` (`status: "proposal"`, `blocker` RED → `open_for_developer`) → дошейп интерфейса с Dev. STOP, GREEN не вызывать. |
 
 ### 2. GREEN — сабагент `ship-green` (права только `src/`)
 
 После подтверждения RED вызвать `ship-green`. Передать: TaskSpec, тела ADR (резолвлены через INDEX), список RED тест-классов.
 
-`ship-green` итерирует (N итераций, лимит в ship-green) пока тесты зелёные. Не может трогать тесты. Возвращает `agent_green` блок.
+`ship-green` итерирует (N итераций, лимит в ship-green) пока тесты зелёные. Тесты не трогает. Возвращает `agent_green`.
 
 ### Обработка исходов GREEN (оркестратор)
 
 | Исход от ship-green | Действие оркестратора |
 |---|---|
 | `status: done` | собрать BuildReport, перейти к ADR Writer |
-| `status: escalated` (N) | переклассифицировать в LOGIC: создать в TaskSpec скелет `shape` (`status: "proposal"`, причина провала итераций → `open_for_developer`) → передать в трек LOGIC (рассуждение в сессии) |
-| `status: conflict` | создать `TestUpdateTicket v1` → `.ship/pipeline/{slug}/tu-*.json`. STOP. |
+| `status: escalated` (N) | переклассифицировать в LOGIC: скелет `shape` (`status: "proposal"`, причина провала итераций → `open_for_developer`) → трек LOGIC (рассуждение в сессии) |
+| `status: conflict` | создать `TestUpdateTicket` → `.ship/pipeline/{slug}/tu-*.json`. STOP. |
 | сигнал ADR-конфликта | запустить [ADR-CONFLICT flow](../ADR-CONFLICT.md) |
 
 ### 3. Refactor
 
-После GREEN можно поручить `ship-green` рефактор (дедуп, deep modules), прогон после каждого шага, никогда на RED.
+После GREEN — опциональный рефактор через `ship-green` (дедуп, deep modules), прогон после каждого шага, никогда на RED.
 
 ---
 
 ## Трек LOGIC — шейп в сессии + реализация сабагентами
 
-1. **Шейп (рассуждение, основная сессия).** Dev + оркестратор шейпят решение ~15 мин: подход, ключевые модули, интерфейсы, риски. Стартовая точка — `shape` из TaskSpec (`status: "proposal"` от decompose, поле `open_for_developer` = повестка сессии).
-2. **Зафиксировать шейп в артефакте.** Результат сессии записать в поле `shape` TaskSpec: `approach`, `intermediate_structures`, `ordering_rules`; `open_for_developer` опустошить или оставить только осознанно developer-owned пункты. После явного апрува Dev → `status: "approved"`, `approved_by`, `approved_at`. Шейп живёт в `.ship/pipeline/{slug}/task-*.json`, не в памяти сессии.
-3. **RED.** Вызвать `ship-red` — тесты по сценариям как обычно.
-4. **GREEN.** Вызвать `ship-green`, передав TaskSpec с `shape.status: "approved"`. Сабагент реализует по плану из артефакта — не по пересказу.
-5. **Эскалация из ROUTINE** приходит сюда же — продолжить рассуждение в сессии (скелет `shape` уже создан оркестратором при эскалации, см. трек ROUTINE).
+1. **Шейп (сессия).** Dev + оркестратор шейпят решение ~15 мин: подход, ключевые модули, интерфейсы, риски. Старт — `shape` из TaskSpec (`status: "proposal"` от decompose, `open_for_developer` = повестка сессии).
+2. **Зафиксировать шейп.** Результат записать в `shape` TaskSpec: `approach`, `intermediate_structures`, `ordering_rules`; `open_for_developer` опустошить или оставить осознанно developer-owned пункты. После апрува Dev → `status: "approved"`, `approved_by`, `approved_at`. Шейп — в `.ship/pipeline/{slug}/task-*.json`, не в памяти сессии.
+3. **RED.** Вызвать `ship-red` — тесты по сценариям.
+4. **GREEN.** Вызвать `ship-green` с TaskSpec где `shape.status: "approved"`. Реализует по плану из артефакта, не по пересказу.
+5. **Эскалация из ROUTINE** приходит сюда — продолжить рассуждение в сессии (скелет `shape` уже создан оркестратором, см. трек ROUTINE).
 
-Сессия делает дорогое (решение), сабагент — дешёвое (код по решению). GREEN для LOGIC не вызывается, пока `shape.status != "approved"`.
+Сессия делает дорогое (решение), сабагент — дешёвое (код). GREEN для LOGIC не вызывается, пока `shape.status != "approved"`.
 
 ---
 
@@ -86,22 +86,30 @@ description: Оркеструет билд TaskSpec по trust_zone — ROUTINE 
 
 ---
 
+## Под-трек FAN-OUT (когда `fan_out.enabled: true`)
+
+При `fan_out.enabled: true` слои реализуются ПАРАЛЛЕЛЬНО (Phase A контракт → A.5 RED все тесты → B по `ship-green` на слой в worktree → C интеграция). Ортогонален trust_zone, при `CRITICAL` не ставится. Оркестратор фиксирует контракт, делегирует слои.
+
+**Канон механики (фазы, инварианты, worktree-детектор, риски) — [FAN-OUT.md](../FAN-OUT.md).** `fan_out: null` — под-трек пропустить, FAN-OUT.md не грузить.
+
+---
+
 ## ADR Writer
 
-После реализации проверить, было ли какое-либо решение:
+После реализации проверить, было ли решение:
 1. Трудно обратимым
 2. Удивительным без контекста
 3. Результатом реального trade-off
 
-Если да → произвести `ADREntry v1`, сохранить в `.ship/pipeline/{slug}/adr-entry-<task-id>-<letter>.json`.
+Если да → произвести `ADREntry` в `.ship/pipeline/{slug}/adr-entry-<task-id>-<letter>.json`.
 
-`ADREntry` — это КАНДИДАТ (`status: proposed`), не канон. Промоушен в `.ship/docs/adr/ADR-NNN.md` делает maintainer на Delivery, не агент.
+`ADREntry` — КАНДИДАТ (`status: proposed`), не канон. Промоушен в `.ship/docs/adr/ADR-NNN.md` делает maintainer на Delivery, не агент.
 
 ---
 
 ## ADR conflict
 
-Если реализация противоречит существующему `Status: Accepted` ADR — не продавливать. Запустить [ADR-CONFLICT flow](../ADR-CONFLICT.md) (канон протокола). Детектор здесь `detected_by: build`. Специфика этапа: при исходе "ADR верен" GREEN переписывает реализацию под ADR (не лезет в N → escalate LOGIC).
+Реализация противоречит `Status: Accepted` ADR — не продавливать. Запустить [ADR-CONFLICT flow](../ADR-CONFLICT.md) (канон протокола), `detected_by: build`. Специфика этапа: исход "ADR верен" → GREEN переписывает реализацию под ADR (не лезет в N → escalate LOGIC).
 
 ---
 
@@ -121,7 +129,7 @@ description: Оркеструет билд TaskSpec по trust_zone — ROUTINE 
 - [ ] `self_review.notes` отмечает "CRITICAL: Dev-implemented", автозаписи агента не было
 - [ ] Ненарушение `adr_refs` оценивается по Dev-коду (review подтвердит на Phase 3)
 
-Чеклист про `files_to_change` / `test_scenarios` к CRITICAL НЕ применяется — код не агента.
+Чеклист `files_to_change` / `test_scenarios` к CRITICAL НЕ применяется — код не агента.
 
 ---
 
@@ -129,10 +137,12 @@ description: Оркеструет билд TaskSpec по trust_zone — ROUTINE 
 
 ```jsonc
 {
-  "$schema": "pipeline/build-report/v1",
+  "$schema": "pipeline/build-report",
   "id": "build-0042-03",
   "task_spec_id": "task-0042-03",
   "trust_zone": "ROUTINE",
+  "fan_out": null,                // или { "layers": [{ "role": "application", "status": "done", "worktree": "<path>" }, ...], "shared_written": true, "merged": true }
+                                  // статусы слоя: done | escalated | conflict | immature-contract | out-of-bounds (вылазка за границы)
   "created_at": "<ISO8601>",
 
   "tdd": {
@@ -174,7 +184,7 @@ description: Оркеструет билд TaskSpec по trust_zone — ROUTINE 
 
 ```jsonc
 {
-  "$schema": "pipeline/adr-entry/v1",
+  "$schema": "pipeline/adr-entry",
   "id": "adr-entry-0042-a",
   "task_spec_id": "task-0042-03",
   "created_at": "<ISO8601>",
@@ -193,7 +203,7 @@ description: Оркеструет билд TaskSpec по trust_zone — ROUTINE 
 ## Правила
 
 - GREEN никогда не трогает тесты. RED никогда не трогает src.
-- Для LOGIC: GREEN вызывается только при `shape.status: "approved"`. Запись шейпа в TaskSpec — единственная разрешённая правка уже сохранённого TaskSpec (поле `shape`, ничего сверх).
+- LOGIC: GREEN только при `shape.status: "approved"`. Запись `shape` — единственная разрешённая правка сохранённого TaskSpec (ничего сверх).
 - Эскалация после N — не зацикливаться.
-- `self_review.adr_violations` обязан быть `[]` иначе downstream `mr_ready` останется false.
-- Сохранить ВСЕ артефакты в `.ship/pipeline/{slug}/` до отчёта о завершении.
+- `self_review.adr_violations` обязан быть `[]`, иначе downstream `mr_ready` = false.
+- Сохранить ВСЕ артефакты в `.ship/pipeline/{slug}/` до отчёта.

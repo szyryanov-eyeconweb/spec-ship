@@ -43,7 +43,7 @@
 ADR обоснованно требует пересмотра.
 
 1. **ESCALATE.** Этап останавливается (как GREEN при конфликте теста).
-2. Создать `AdrChangeTicket v1` → `.ship/pipeline/{slug}/adr-change-*.json`, `resolution.status: pending`.
+2. Создать `AdrChangeTicket` → `.ship/pipeline/{slug}/adr-change-*.json`, `resolution.status: pending`.
 3. После апрува maintainer'а выполнить ДВЕ операции:
 
    **a) Пометить старый ADR Expired.**
@@ -82,7 +82,7 @@ ADR обоснованно требует пересмотра.
 
 ```jsonc
 {
-  "$schema": "pipeline/adr-change-ticket/v1",
+  "$schema": "pipeline/adr-change-ticket",
   "id": "adr-change-0042-01",
   "detected_by": "review",        // shape-doc | build | review
   "detected_at": "<ISO8601>",

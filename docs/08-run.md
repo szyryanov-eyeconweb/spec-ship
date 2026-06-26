@@ -1,6 +1,6 @@
 # Запуск всей цепочки одной командой: run
 
-![Анатомия spec-ship: Shape → Hand-off → Implement → Prove](assets/ship_anatomy.png)
+![run: вся цепочка одним запуском, стоп только на ваших гейтах](assets/run.png)
 
 ```
 /spec-ship:run Фильтрация транзакций по меткам

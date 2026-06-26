@@ -5,7 +5,7 @@ description: Промоутит кандидата ADREntry (.ship/pipeline/{slu
 
 # Ship ADR Promote
 
-Конвертит кандидата `ADREntry v1` (JSON, `Proposed`) в канонический ADR markdown (`Accepted`) и регистрирует в `.ship/docs/adr/INDEX.md`.
+Конвертит кандидата `ADREntry` (JSON, `Proposed`) в канонический ADR markdown (`Accepted`) и регистрирует в `.ship/docs/adr/INDEX.md`.
 
 Это ручной шаг maintainer'а на Delivery — НЕ автономный. Агент исполняет конвертацию, человек инициирует и апрувит.
 

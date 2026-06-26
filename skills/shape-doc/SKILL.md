@@ -1,11 +1,11 @@
 ---
 name: shape-doc
-description: Произвести замороженный артефакт BusinessDoc v1 JSON для пайплайна spec-ship. Использовать при старте новой фичи, после сессии grill-with-docs, или когда пользователь говорит "shape this feature" / "create business doc" / "phase 0" / "сформулируй фичу".
+description: Произвести замороженный артефакт BusinessDoc JSON для пайплайна spec-ship. Использовать при старте новой фичи, после сессии grill-with-docs, или когда пользователь говорит "shape this feature" / "create business doc" / "phase 0" / "сформулируй фичу".
 ---
 
 # Shape Doc
 
-Интервьюирует пользователя о фиче и производит замороженный артефакт `BusinessDoc v1` JSON, сохраняя в `.ship/pipeline/`.
+Интервьюирует пользователя о фиче и производит замороженный артефакт `BusinessDoc` JSON, сохраняя в `.ship/pipeline/`.
 
 ## Процесс
 
@@ -14,7 +14,7 @@ description: Произвести замороженный артефакт Busi
 - Прочитать `CONTEXT.md` (доменный глоссарий).
 - Прочитать `.ship/docs/adr/INDEX.md` (НЕ все ADR). Отфильтровать строки `Status: Accepted` где `Area` пересекает область фичи. Загрузить тела ТОЛЬКО matched ADR. Expired игнорировать.
 - Проверить survey: `.ship/pipeline/_intake/survey-*.json` и slug-директории по той же области. Если есть — `observed_workflows` и `connected_groups` задают контекст интервью: вопросы не «как сейчас работает?» (уже известно), а «что должно измениться?». Если фича меняет существующее поведение, а survey нет — предложить пользователю сначала `/spec-ship:survey` (не блокирующе).
-- Если ещё не сделано, запустить `/grill-with-docs` для шарпинга терминологии и выявления конфликтов с ADR.
+- Если ещё не сделано, запустить процесс шарпинга терминологии и выявления конфликтов с ADR.
 
 ### 2. Интервью (если нужно)
 
@@ -38,7 +38,7 @@ description: Произвести замороженный артефакт Busi
 {старый workflow} --шаг--> {новый workflow}          # фича меняет существующий код-путь
 ```
 
-Канон нотации — README («Workflow-нотация»), имена состояний из `CONTEXT.md`. Если есть survey и фича меняет наблюдаемый код-путь — `feature.workflow` писать рефакторинг-формой: `{имя из observed_workflows} --шаг--> {новый workflow}`. Это явно связывает AS-IS из survey с TO-BE и подсказывает doc-promote, какие workflow канона замещаются.
+Канон нотации — [CANON.md](../CANON.md) («Workflow-нотация»), имена состояний из `CONTEXT.md`. Если есть survey и фича меняет наблюдаемый код-путь — `feature.workflow` писать рефакторинг-формой: `{имя из observed_workflows} --шаг--> {новый workflow}`. Это явно связывает AS-IS из survey с TO-BE и подсказывает doc-promote, какие workflow канона замещаются.
 
 ### 3. Прогнать Requirements Review
 
@@ -55,9 +55,9 @@ description: Произвести замороженный артефакт Busi
 
 ### 4. Произвести артефакт
 
-Сгенерировать `BusinessDoc v1` JSON строго по схеме ниже.
+Сгенерировать `BusinessDoc` JSON строго по схеме ниже.
 
-Вывести slug директории фичи: `{bd-id}-{kebab}` где `{kebab}` — короткое kebab-case резюме `feature.title` (4–6 значимых слов, lowercase, дефисы). Пример: `bd-2026-0002-db-connection-reconnect`.
+Вывести slug директории фичи по правилу slug из [CANON.md](../CANON.md). Пример: `bd-2026-0002-db-connection-reconnect`.
 
 Сохранить в:
 ```
@@ -80,7 +80,7 @@ description: Произвести замороженный артефакт Busi
 
 ```jsonc
 {
-  "$schema": "pipeline/business-doc/v2",
+  "$schema": "pipeline/business-doc",
   "id": "bd-2024-0042",
   "created_at": "<ISO8601>",
   "created_by": "ba:<username>",
@@ -163,7 +163,6 @@ description: Произвести замороженный артефакт Busi
 - `conflicts` никогда не опускается — `[]` если нет.
 - `data` никогда не опускается — `[]` если нет. Значения точные: «около 5%» — это `open_question`, не data-запись. Критерии и `workflow`-поля ссылаются на записи как `d-N`, не дублируют значение в прозе.
 - `open_questions` никогда не опускается — `[]` если нет. Заморозка/апрув при `blocking` без `resolution` запрещены. Ответы пользователя писать в `resolution`, не перетирать `question`.
-- Состояния в `workflow`-полях — из доменного глоссария `CONTEXT.md`; синтаксис — по канону нотации в README, не переопределять локально.
+- Состояния в `workflow`-полях — из доменного глоссария `CONTEXT.md`; синтаксис — по канону нотации в [CANON.md](../CANON.md), не переопределять локально.
 - НЕ ставить `status: "frozen"` — это делает Decomposer после производства TaskSpec.
-- Артефакты `pipeline/business-doc/v1` (без `workflow`/`open_questions`) остаются валидными — читать как `null`/`[]`. Артефакты без `data` — читать как `[]`.
 - Сохранить файл до отчёта. Никогда не выводить JSON только в чат.
