@@ -2,7 +2,7 @@
 
 **S**hape → **H**and-off (decompose) → **I**mplement (build) → **P**rove (review).
 
-Библиотека из 7 скиллов + 2 сабагента. Каждый этап читает артефакт предыдущего из `.ship/pipeline/{slug}/` и производит свой JSON строго по контракту из `pipeline_schemas.json`. Артефакты версионируются в репо.
+пБиблиотека из 7 скиллов + 2 сабагента. Каждый этап читает артефакт предыдущего из `.ship/pipeline/{slug}/` и производит свой JSON по схеме своего этапа. Схема каждого артефакта — JSONC-блок в соответствующем `SKILL.md` (раздел «Схема выхода»); поле `$schema` несёт метку схемы из колонки `Schema ID` карты ниже. Артефакты версионируются в репо.
 
 Этот README — карта и сквозные протоколы. Детали каждого этапа (процесс, схема, кейсы, грабли) — в соответствующем `SKILL.md`, не здесь.
 
@@ -11,11 +11,11 @@
 | Команда | Скилл | Вход | Выход | Schema ID |
 |---|---|---|---|---|
 | `/spec-ship:run` | run | описание фичи (+ якорь) | оркеструет всю цепочку | — (дирижёр) |
-| `/spec-ship:survey` | survey | якорь в существующем коде | `survey-*.json` | `pipeline/survey/v1` |
-| `/spec-ship:shape-doc` | shape-doc | требование/идея (+ survey) | `bd-*.json` | `pipeline/business-doc/v2` |
-| `/spec-ship:decompose` | decompose | `bd-*.json` | `task-*.json` (×N), `tu-*.json` | `pipeline/task-spec/v2`, `pipeline/test-update-ticket/v1` |
-| `/spec-ship:build` | build | `task-*.json` | `build-*.json`, `adr-entry-*.json` | `pipeline/build-report/v1`, `pipeline/adr-entry/v1` |
-| `/spec-ship:review` | review | `build-*.json` | `review-*.json` | `pipeline/review-report/v1` |
+м| `/spec-ship:survey` | survey | якорь в существующем коде | `survey-*.json` | `pipeline/survey` |
+| `/spec-ship:shape-doc` | shape-doc | требование/идея (+ survey) | `bd-*.json` | `pipeline/business-doc` |
+| `/spec-ship:decompose` | decompose | `bd-*.json` | `task-*.json` (×N), `tu-*.json` | `pipeline/task-spec`, `pipeline/test-update-ticket` |
+| `/spec-ship:build` | build | `task-*.json` | `build-*.json`, `adr-entry-*.json` | `pipeline/build-report`, `pipeline/adr-entry` |
+| `/spec-ship:review` | review | `build-*.json` | `review-*.json` | `pipeline/review-report` |
 | `/spec-ship:adr-promote` | adr-promote | `adr-entry-*.json` (Proposed) | `.ship/docs/adr/ADR-NNN-*.md` + INDEX | — (markdown канон) |
 | `/spec-ship:doc-promote-feature` | doc-promote-feature | `survey-*.json` + `bd-*.json` (после мёржа MR) | `.ship/docs/workflows/*.md` + INDEX | — (markdown канон) |
 | `/spec-ship:doc-backfill` | doc-backfill | только `survey-*.json` (без MR-гейта, из существующего кода) | `.ship/docs/workflows/*.md` + INDEX | — (markdown канон) |
@@ -28,7 +28,7 @@
 | `ship-red` | только `tests/`, читает src | падающие тесты по `test_scenarios`, физически не может подогнать под реализацию |
 | `ship-green` | только `files_to_change`, не трогает tests | минимальный код пока тесты зелёные |
 
-Изоляция прав — физический барьер, не инструкция: GREEN не может схитрить с тестом, RED не видит реализацию. Контракт между ними — тестовый набор.
+Изоляция прав — физический барьер, не инструкция: PreToolUse-хук `ship-guard.sh` отклоняет запись вне разрешённого слоя по `agent_type` (ship-red ≠ src, ship-green ≠ tests). GREEN не может схитрить с тестом, RED не видит реализацию. Контракт между ними — тестовый набор. Барьер активен при зарегистрированном хуке (установка); иначе деградирует до промпт-инструкции в теле сабагента.
 
 ## Структура артефактов
 
@@ -47,7 +47,7 @@
     └── review-0002-01.json                     Phase 3  ReviewReport
 ```
 
-Slug-правило (едино во всех скиллах): `{bd-id}-{kebab}`, `kebab` = 4–6 значимых слов из `feature.title`, lowercase, дефисы.
+Slug-правило (едино во всех скиллах): `{bd-id}-{kebab}`, `kebab` = 4–6 значимых слов из `feature.title`, lowercase, дефисы. Канон для скиллов — [CANON.md](CANON.md) (грузится точечно, без всего README).
 
 ## Два режима запуска
 
@@ -86,7 +86,7 @@ Slug-правило (едино во всех скиллах): `{bd-id}-{kebab}`
 
 Оркестратор. Выбирает трек по `trust_zone`. Рассуждающая модель (основная сессия) — где мышление; исполнительная (сабагенты) — где исполнение по спеке. Конкретные модели в `model:` сабагентов и настройке сессии, не в тексте скиллов.
 
-| trust_zone | Трек | Поле `shape` в TaskSpec (v2) |
+| trust_zone | Трек | Поле `shape` в TaskSpec |
 |---|---|---|
 | `ROUTINE` | сабагенты `ship-red` → `ship-green` автономно | `null` |
 | `LOGIC` | Dev шейпит решение в сессии → сабагенты реализуют по шейпу | `proposal` (decompose) → `approved` (шейп-сессия) → контракт для GREEN |
@@ -94,32 +94,15 @@ Slug-правило (едино во всех скиллах): `{bd-id}-{kebab}`
 
 Шейп LOGIC-задачи персистится в поле `shape` TaskSpec, не живёт в памяти сессии: decompose кладёт скелет `proposal` с повесткой `open_for_developer`, шейп-сессия build заполняет план и Dev апрувит (`approved`), GREEN реализует по артефакту. Эскалации из ROUTINE (RED `blocked`, GREEN `escalated`) создают такой же скелет `proposal` с причиной эскалации.
 
+### Fan-out: параллель по слоям (ортогонально trust_zone)
+
+Если задача делится на слои-роли с непересекающимися путями и контракт между ними фиксируем заранее — decompose ставит `fan_out` (см. decompose «3.5»), build реализует слои ПАРАЛЛЕЛЬНО: Phase A (контракт: порты+DTO, сессия) → A.5 (RED все тесты) → B (по `ship-green` на слой, параллельно, изоляция `files_to_change`) → C (интеграция). Слои зависят от контракта, не от кода друг друга — заморозили контракт, реализации независимы. Незрелый контракт → стоп фан-аута → дошейп в Phase A → рестарт B. Ускоряет ROUTINE и LOGIC; не применяется к CRITICAL. Канон механики — [FAN-OUT.md](FAN-OUT.md) (грузить только для fan_out-задач).
+
 ## Сквозные протоколы
 
 ### Workflow-нотация
 
-Единый DSL описания поведения во всех артефактах. Канон — здесь; скиллы не переопределяют синтаксис, только ссылаются. Имена состояний — из доменного глоссария `CONTEXT.md`, не выдуманные синонимы.
-
-```
-состояние --шаг--> состояние                      # переход
-[ветка 1, ветка 2]                                # условные ветки
-(ветка 1, ветка 2)                                # параллельные ветки
-состояние: Тип --шаг--> состояние: Тип            # типизированные состояния (опционально)
-{старый workflow} --шаг--> {новый workflow}       # рефакторинг существующего код-пути
-```
-
-| Артефакт | Поле | Описывает |
-|---|---|---|
-| survey | `observed_workflows[].workflow` | код КАК ЕСТЬ |
-| bd | `feature.workflow`, `acceptance_criteria[].workflow` | поведение TO-BE; при изменении существующего код-пути — рефакторинг-форма от `observed_workflows` |
-| task | `test_scenarios[].workflow` | контракт теста для RED: arrange из `input`, act по шагам, assert ровно `expected_outcome` |
-| review | check #2 | тест ассертит конечное состояние `workflow`, не ослабленную версию |
-| docs/workflows | тела документов | канон поведения; строки копируются из артефактов, не пересочиняются |
-
-Правила применения:
-- Типизированная форма — когда тип состояния уже задан `spec.interface` или `shape.intermediate_structures`; не выдумывать типы ради синтаксиса.
-- Рефакторинг-форма — когда фича меняет наблюдаемый код-путь и есть survey: `{имя из observed_workflows} --шаг--> {новый workflow}`. Связывает AS-IS и TO-BE явно; doc-promote по ней видит, какие workflow канона замещаются.
-- Поля `workflow` везде опциональны: проза/GWT достаточны для линейных случаев, DSL — для ветвистых.
+DSL описания поведения во всех артефактах. **Канон — [CANON.md](CANON.md)** (горячий файл, его грузят сами скиллы вместо всего README). Скиллы синтаксис не переопределяют, только ссылаются.
 
 ### Data-слой: точные значения сквозь пайплайн
 

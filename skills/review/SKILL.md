@@ -1,15 +1,15 @@
 ---
 name: review
-description: Ревью готового билда против его TaskSpec и ADR, затем выдать ReviewReport v1 JSON для пайплайна spec-ship. Использовать когда есть BuildReport готовый к ревью, или когда пользователь говорит "review build", "review task", "phase 3", "pre-MR review", "отревьюй билд".
+description: Ревью готового билда против его TaskSpec и ADR, затем выдать ReviewReport JSON для пайплайна spec-ship. Использовать когда есть BuildReport готовый к ревью, или когда пользователь говорит "review build", "review task", "phase 3", "pre-MR review", "отревьюй билд".
 ---
 
 # Review Report
 
-Читает `BuildReport v1` + его `TaskSpec v1` и производит артефакт `ReviewReport v1`, сохраняя в `.ship/pipeline/`.
+Читает `BuildReport` + его `TaskSpec` и производит артефакт `ReviewReport`, сохраняя в `.ship/pipeline/`.
 
 ## Pre-flight
 
-Определить slug фичи из id BusinessDoc + feature.title: `{bd-id}-{4-6-слов-kebab}`. Пример: `bd-2026-0002-db-connection-reconnect`.
+Определить slug фичи по правилу slug из [CANON.md](../CANON.md). Пример: `bd-2026-0002-db-connection-reconnect`.
 
 Загрузить из `.ship/pipeline/{slug}/`:
 - `BuildReport`: `build-<id>.json` (спросить если неоднозначно)
@@ -35,7 +35,7 @@ description: Ревью готового билда против его TaskSpec
 - `tests_written` в BuildReport ≥ числа `test_scenarios` в TaskSpec.
 - Каждый `ts-*` сценарий имеет соответствующий тест.
 - Тесты через публичный интерфейс (без моков доменных внутренностей).
-- Если у сценария заполнены `workflow`/`input`/`expected_outcome` (v2) — тест ассертит именно `expected_outcome` (включая тип исключения для sad), не ослабленную версию.
+- Если у сценария заполнены `workflow`/`input`/`expected_outcome` — тест ассертит именно `expected_outcome` (включая тип исключения для sad), не ослабленную версию.
 - Если `input` сценария ссылается на `d-N` — фикстура теста построена из точного значения `data[]`, не из аппроксимации или усечённой версии.
 
 ### 3. adr_violations
@@ -94,7 +94,7 @@ description: Ревью готового билда против его TaskSpec
 
 ```jsonc
 {
-  "$schema": "pipeline/review-report/v1",
+  "$schema": "pipeline/review-report",
   "id": "review-0042-03",
   "build_report_id": "build-0042-03",
   "task_spec_id": "task-0042-03",
