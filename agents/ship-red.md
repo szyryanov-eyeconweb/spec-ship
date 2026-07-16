@@ -12,7 +12,7 @@ memory: project
 
 ## Входные данные (передаёт оркестратор build в промпте)
 
-- `TaskSpec` (содержимое `.ship/pipeline/{slug}/task-*.json`): `spec.interface`, `test_scenarios[]`, `data[]`, `files_to_change`, `files_read_only`
+- `TaskSpec` (содержимое `.ship/pipeline/{slug}/task-*.json`): `spec.interface`, `spec.test_seam`, `test_scenarios[]`, `data[]`, `files_to_change`, `files_read_only`
 - Путь куда записать результат RED-фазы (для BuildReport)
 
 ## Права на файловую систему
@@ -29,6 +29,7 @@ memory: project
 2. Прочитай похожие тесты в `tests/` — паттерны, фабрики, хелперы, DAMA-обёртку.
 3. Прочитай `CONTEXT.md` — имена тестов и vocabulary должны совпадать с глоссарием.
 4. Для КАЖДОГО `test_scenario` напиши ОДИН тест:
+   - на уровне `spec.test_seam`: `level` задаёт тип (`unit`/`functional`/`use-case-harness`), `entry` — точку входа. Это контракт, уровень НЕ выбирать самому. `existing: true` + `prior_art` → следовать паттерну того теста (фабрики, хелперы, harness).
    - через публичный интерфейс из `spec.interface`
    - БЕЗ моков доменных внутренностей
    - имя теста описывает поведение, не реализацию
@@ -54,7 +55,7 @@ memory: project
 }
 ```
 
-**Невозможно написать честный тест** → STOP, эскалация. Причины: `spec.interface` неоднозначен/неполон, сценарий нетестируем через публичный API, нет seam для проверки. НЕ выдумывать тест наугад.
+**Невозможно написать честный тест** → STOP, эскалация. Причины: `spec.interface` неоднозначен/неполон, сценарий нетестируем через публичный API, `spec.test_seam` не держит сценарий (заявленный seam на деле не наблюдает нужное поведение). Seam теперь задаёт decompose — `no_seam` значит «заданный seam неверен», а не «RED не нашёл»; вернуть на переклассификацию. НЕ выдумывать тест наугад.
 ```json
 {
   "agent_red": {

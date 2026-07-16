@@ -27,6 +27,8 @@ spec-ship строится на одном принципе: **не доверя
 идея/требование
    │
    ▼
+[00] roadmap     — эпик на неск. фич → карта решений       (только для крупного/размытого)
+   ▼                 каждая созревшая фича → run ↓
 [0a] survey      — разведка: что уже есть в коде          (если меняем существующее)
    ▼
 [0]  shape-doc   — интервью → бизнес-спека → заморозка    (человек апрувит)
@@ -41,7 +43,9 @@ merge request → после мёржа: adr-promote / doc-promote-feature — �
                           (+ doc-backfill — заранее, из существующего кода)
 ```
 
-Команды в Claude Code: `/spec-ship:survey`, `/spec-ship:shape-doc`, `/spec-ship:decompose`, `/spec-ship:build`, `/spec-ship:review`, `/spec-ship:adr-promote`, `/spec-ship:doc-promote-feature`, `/spec-ship:doc-backfill`.
+Команды в Claude Code: `/spec-ship:roadmap`, `/spec-ship:survey`, `/spec-ship:shape-doc`, `/spec-ship:decompose`, `/spec-ship:build`, `/spec-ship:review`, `/spec-ship:adr-promote`, `/spec-ship:doc-promote-feature`, `/spec-ship:doc-backfill`.
+
+Шаг `[00] roadmap` нужен только для крупного: эпик на несколько фич со сцепленными решениями. Он чертит карту решений и по одной выпускает созревшие фичи в `run`. Для одной понятной фичи начинайте прямо с shape-doc / run. Подробнее — [Карта эпика](docs/00-roadmap.md).
 
 Эти этапы можно вызывать по очереди руками, а можно одним запуском: **`/spec-ship:run`** прогоняет всю цепочку, останавливаясь только там, где правда нужны вы (апрув спеки и разбивки, проектирование сложной логики, эскалации). Один вызов вместо пяти, без лишних пауз на рутине. Подробнее — [Запуск всей цепочки одной командой](docs/08-run.md).
 
@@ -52,6 +56,7 @@ merge request → после мёржа: adr-promote / doc-promote-feature — �
 | Страница | О чём |
 |---|---|
 | [Процесс целиком](docs/process.md) | Путь фичи от идеи до прода на сквозном примере |
+| [Шаг 00: roadmap](docs/00-roadmap.md) | Карта эпика над пайплайном — для крупного на несколько фич |
 | [Шаг 0a: survey](docs/01-survey.md) | Разведка существующего кода перед изменением |
 | [Шаг 0: shape-doc](docs/02-shape-doc.md) | Интервью и бизнес-спека (BusinessDoc) |
 | [Шаг 1: decompose](docs/03-decompose.md) | Нарезка на задачи и зоны доверия |

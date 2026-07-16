@@ -32,7 +32,7 @@ disable-model-invocation: true
 
 ### 1. Определить целевой документ
 
-Вывести `Area` из затронутых файлов по feature-based структуре (та же логика, что в adr-promote): `projection`, `importer`, `api`, `reports`, `shared`, `architecture`.
+Вывести `Area` из затронутых файлов — Area-маппинг в [CANON.md](../CANON.md).
 
 Прочитать `.ship/docs/workflows/INDEX.md` (создать при первом промоушене):
 - документ по этой области/код-пути уже есть → режим **amend** (обновить его)
