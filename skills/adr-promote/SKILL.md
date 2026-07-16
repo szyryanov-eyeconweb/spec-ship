@@ -5,7 +5,7 @@ description: Промоутит кандидата ADREntry (.ship/pipeline/{slu
 
 # Ship ADR Promote
 
-Конвертит кандидата `ADREntry v1` (JSON, `Proposed`) в канонический ADR markdown (`Accepted`) и регистрирует в `.ship/docs/adr/INDEX.md`.
+Конвертит кандидата `ADREntry` (JSON, `Proposed`) в канонический ADR markdown (`Accepted`) и регистрирует в `.ship/docs/adr/INDEX.md`.
 
 Это ручной шаг maintainer'а на Delivery — НЕ автономный. Агент исполняет конвертацию, человек инициирует и апрувит.
 
@@ -32,15 +32,7 @@ description: Промоутит кандидата ADREntry (.ship/pipeline/{slu
 
 ### 3. Вывести Area
 
-Определить `Area` из `adr-entry.files_ref[]` по feature-based структуре (ADR-001):
-- путь `src/Projection/...` → `projection` (+ подобласть, напр. `projection/wallet`)
-- `src/Importer/...` → `importer`
-- `src/Api/...` → `api`
-- `src/Reports/...` → `reports`
-- `src/Shared/...` → `shared`
-- затрагивает структуру/несколько фич → `architecture` или `all`
-
-Если неоднозначно — спросить maintainer.
+Определить `Area` из `adr-entry.files_ref[]` — Area-маппинг в [CANON.md](../CANON.md).
 
 ### 4. Конвертировать JSON → markdown
 

@@ -39,10 +39,10 @@ description: Наполняет workflow-канон .ship/docs/workflows/ пов
 
 ### 3. Вызвать конвертер
 
-Вызвать `doc-promote-internal` через Skill tool, передав:
+Вызвать `doc-promote-internal` через Skill tool по его [контракту вызова](../doc-promote-internal/SKILL.md#контракт-вызова):
 - source-артефакты: ТОЛЬКО survey (bd нет)
 - Source-помета: `backfill (<survey-id>)`
-- намерение по слою bd: bd отсутствует → итог КАК ЕСТЬ (observed_workflows survey переносятся напрямую, без слоя bd)
+- bd отсутствует → итог КАК ЕСТЬ (observed_workflows переносятся напрямую)
 
 ### 4. Подтвердить
 
