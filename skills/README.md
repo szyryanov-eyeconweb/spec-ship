@@ -2,7 +2,7 @@
 
 **S**hape → **H**and-off (decompose) → **I**mplement (build) → **P**rove (review).
 
-пБиблиотека из 7 скиллов + 2 сабагента. Каждый этап читает артефакт предыдущего из `.ship/pipeline/{slug}/` и производит свой JSON по схеме своего этапа. Схема каждого артефакта — JSONC-блок в соответствующем `SKILL.md` (раздел «Схема выхода»); поле `$schema` несёт метку схемы из колонки `Schema ID` карты ниже. Артефакты версионируются в репо.
+Библиотека из 7 скиллов + 2 сабагента. Каждый этап читает артефакт предыдущего из `.ship/pipeline/{slug}/` и производит свой JSON по схеме своего этапа. Схема каждого артефакта — JSONC-блок в `SCHEMA.md` рядом с его `SKILL.md`; поле `$schema` несёт метку схемы из колонки `Schema ID` карты ниже. Артефакты версионируются в репо.
 
 Этот README — карта и сквозные протоколы. Детали каждого этапа (процесс, схема, кейсы, грабли) — в соответствующем `SKILL.md`, не здесь.
 
@@ -10,7 +10,8 @@
 
 | Команда | Скилл | Вход | Выход | Schema ID |
 |---|---|---|---|---|
-| `/spec-ship:run` | run | описание фичи (+ якорь) | оркеструет всю цепочку | — (дирижёр) |
+| `/spec-ship:roadmap` | roadmap | размытый эпик на неск. фич | `.ship/roadmap/{epic}/MAP.json` + `ticket-*.json`; созревшая фича → `run` | `roadmap/map`, `roadmap/ticket` |
+| `/spec-ship:run` | run | описание фичи (+ якорь, + `handoff` из roadmap) | оркеструет всю цепочку | — (дирижёр) |
 м| `/spec-ship:survey` | survey | якорь в существующем коде | `survey-*.json` | `pipeline/survey` |
 | `/spec-ship:shape-doc` | shape-doc | требование/идея (+ survey) | `bd-*.json` | `pipeline/business-doc` |
 | `/spec-ship:decompose` | decompose | `bd-*.json` | `task-*.json` (×N), `tu-*.json` | `pipeline/task-spec`, `pipeline/test-update-ticket` |
@@ -33,6 +34,11 @@
 ## Структура артефактов
 
 ```
+.ship/roadmap/                              ← слой НАД пайплайном (только для эпиков)
+└── {epic}/                                  ← kebab-slug цели эпика
+    ├── MAP.json                              карта-индекс: цель, решения, туман, out-of-scope
+    └── ticket-01.json … ticket-NN.json       тикеты-вопросы; созревший → run с run_handoff
+
 .ship/pipeline/
 ├── _intake/                                 ← survey до создания BusinessDoc
 │   └── survey-2026-0007.json                  Phase 0a (переносится в slug при shape)
