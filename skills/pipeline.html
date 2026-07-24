@@ -251,6 +251,7 @@ pre.sc{margin:0;padding:10px 11px;font-size:10.5px;line-height:1.65;font-family:
       <div class="card-body"><ul>
         <li>Гейт <span class="v2">v2</span>: blocking-вопрос без resolution → СТОП, не декомпозировать</li>
         <li>Вертикальные слайсы: каждый задевает все слои, маппится на ≥1 AC</li>
+        <li><strong>Тесты на фичу, не на слайс:</strong> 1 функц. набор на фичу (слайс внешнего входа) + unit только на LOGIC-слайсы; слайс без логики → test_scenarios: [], test_seam: null</li>
         <li><strong>trust_zone формально</strong> <span class="v2">v2</span>: интерфейса хватает → ROUTINE (shape: null); нужны структуры/алгоритм → LOGIC (скелет shape: proposal); миграции/целостность → CRITICAL</li>
         <li>files_to_change / files_read_only из survey files_evidence — доказательно, не из головы</li>
         <li>ac.workflow → test_scenarios.workflow: ветки [...] дают отдельные сценарии</li>
