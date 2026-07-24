@@ -33,6 +33,8 @@ description: Оркеструет билд TaskSpec по trust_zone (Two-Agent T
 
 ### 1. RED — сабагент `ship-red` (права только `tests/`)
 
+`test_scenarios: []` (`test_seam: null`) → у слайса нет своих тестов, он покрыт функциональным набором фичи на слайсе-носителе. RED/GREEN этого слайса не через тесты: пропустить RED, GREEN реализует напрямую по `spec.interface`; в self-review отметить «покрытие — функц. набор слайса-носителя <task-id>». Дальше только для слайсов со сценариями.
+
 Вызвать `ship-red` через Agent tool. Передать: TaskSpec (`spec.interface`, `test_scenarios[]`, `data[]`, `files_*`) + путь результата.
 
 `ship-red` пишет по одному падающему тесту на сценарий, подтверждает ALL RED, возвращает `agent_red`. Физически не пишет в `src/` → тесты честные.
@@ -116,7 +118,7 @@ description: Оркеструет билд TaskSpec по trust_zone (Two-Agent T
 
 **ROUTINE / LOGIC** (сабагенты писали код) — проверить:
 - [ ] `spec.interface` полностью реализован
-- [ ] Все `test_scenarios` покрыты тестами
+- [ ] Все `test_scenarios` покрыты тестами (`test_scenarios: []` → слайс покрыт функц. набором фичи, свои тесты не нужны)
 - [ ] Ни один `adr_refs` не нарушен
 - [ ] Изменены только `spec.files_to_change` — ничего сверх
 - [ ] Все `spec.files_read_only` не тронуты
