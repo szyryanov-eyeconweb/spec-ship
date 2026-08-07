@@ -29,11 +29,15 @@ cp "$SPEC_SHIP"/agents/*.md "$PROJECT/.claude/agents/"
 mkdir -p "$PROJECT/.claude/hooks"
 cp "$SPEC_SHIP/hooks/ship-guard.sh" "$PROJECT/.claude/hooks/"
 chmod +x "$PROJECT/.claude/hooks/ship-guard.sh"
+
+# валидатор схем артефактов (энфорсмент правил SCHEMA.md вместо доверия)
+cp "$SPEC_SHIP/hooks/ship-validate.py" "$PROJECT/.claude/hooks/"
+chmod +x "$PROJECT/.claude/hooks/ship-validate.py"
 ```
 
 После перезапуска сессии Claude Code команды `/spec-ship:*` появятся в списке.
 
-## Шаг 1.5. Зарегистрировать хук-барьер (важно)
+## Шаг 1.5. Зарегистрировать хуки: барьер прав и валидатор схем (важно)
 
 Изоляция прав сабагентов — физический барьер, а не просьба в промпте: `ship-red` не пишет в `src/`, `ship-green` не пишет в `tests/`, `ship-review`/`ship-decompose` пишут только в `.ship/pipeline/` (код не трогают). Барьер держит PreToolUse-хук `ship-guard.sh` (см. предыдущий шаг). **Без регистрации хука изоляция деградирует до текстовой инструкции в промпте сабагента** — RED технически сможет подогнать реализацию. Зарегистрировать в `$PROJECT/.claude/settings.json`:
 
@@ -50,12 +54,32 @@ chmod +x "$PROJECT/.claude/hooks/ship-guard.sh"
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ship-validate.py --hook"
+          }
+        ]
+      }
     ]
   }
 }
 ```
 
-Хук видит `agent_type` вызывающего сабагента и `file_path`; запись вне разрешённого слоя отклоняется (`permissionDecision: deny`). Слои по агенту: red→`tests/`, green→не-`tests/`, review/decompose→`.ship/pipeline/`. Новый ship-агент подхватывается автоматически — settings.json править не нужно (matcher по инструменту, фильтр по `agent_type` внутри хука). Основной сессии и прочим агентам не мешает. Требует `jq`; без `jq` хук пропускает вызов (барьер деградирует — установите `jq`). Барьер грубый по слою, точную границу `files_to_change` проверяет self-review build.
+**Второй хук — валидатор схем.** `ship-validate.py` срабатывает ПОСЛЕ записи любого JSON в `.ship/pipeline/` и проверяет структурные инварианты артефакта: обязательные поля на месте, пустые списки записаны как `[]`, `mr_ready: true` только при `APPROVED`, `LOGIC` несёт скелет `shape`, крупные `data`-значения сходятся по контрольной сумме, диагноз бага не сохранён без красного репро-теста. Провал возвращается агенту текстом — он правит файл сам, вмешательства не требуется. До этого правила схем держались добровольно: скилл просил, агент мог тихо нарушить, ловилось глазами на ревью или не ловилось вовсе.
+
+Валидатор молчит на всём, что не его: файл вне `.ship/pipeline/`, не JSON, неизвестная метка `$schema` (пайплайн растёт — новый вид артефакта не должен блокироваться). Требует только Python 3 из stdlib. Проверить руками и увидеть все нарушения разом:
+
+```bash
+.claude/hooks/ship-validate.py            # все артефакты проекта; exit 1 при провалах
+.claude/hooks/ship-validate.py путь.json  # конкретный файл
+```
+
+Хук-барьер видит `agent_type` вызывающего сабагента и `file_path`; запись вне разрешённого слоя отклоняется (`permissionDecision: deny`). Слои по агенту: red→`tests/`, green→не-`tests/`, review/decompose→`.ship/pipeline/`. Новый ship-агент подхватывается автоматически — settings.json править не нужно (matcher по инструменту, фильтр по `agent_type` внутри хука). Основной сессии и прочим агентам не мешает. Требует `jq`; без `jq` хук пропускает вызов (барьер деградирует — установите `jq`). Барьер грубый по слою, точную границу `files_to_change` проверяет self-review build.
 
 ## Шаг 2. Создать CONTEXT.md (рекомендуется)
 

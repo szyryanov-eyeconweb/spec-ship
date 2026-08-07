@@ -72,7 +72,10 @@
       "id": "d-1",
       "name": "rakeback_rate_matrix",
       "purpose": "<что управляет>",
-      "value": null               // точное значение из bd, без изменений
+      "value": null,              // точное значение из bd, без изменений
+      "value_ref": null           // дескриптор из bd, скопированный без изменений (path/shape/
+                                  // sample/checksum). Крупное значение остаётся файлом:
+                                  // сабагент читает файл по path, не тащит корпус в контекст.
     }
   ],
 
@@ -141,5 +144,5 @@
 - `shape` — `null` для ROUTINE/CRITICAL, непустой скелет `status: "proposal"` для LOGIC. Decompose никогда не ставит `status: "approved"` — апрув на шейп-сессии build с Dev.
 - `fan_out` — `null` по умолчанию. Непустой только при всех трёх условиях шага 3.5 SKILL.md, запрещён при `trust_zone: CRITICAL`. При непустом: `layers[].files_to_change` ∪ `contract_paths` ∪ `shared_paths` покрывает весь `spec.files_to_change`, а `contract_paths` и `shared_paths` ⊆ `spec.files_to_change`. Проверить инварианты 1-3 из 3.5. `shared_paths` — `[]` если общей земли нет.
 - `test_scenarios`: `workflow`/`input`/`expected_outcome` опциональны, но для ROUTINE предпочтительны. Есть `workflow` → обязаны быть `input` и `expected_outcome`. Типы брать из `spec.interface` / `shape.intermediate_structures`.
-- `data` в TaskSpec — копия значений из bd с теми же `d-N`, не изменённая. Расхождение с bd — ошибка decompose.
+- `data` в TaskSpec — копия значений из bd с теми же `d-N`, не изменённая. Расхождение с bd — ошибка decompose. Запись с `value_ref` копируется дескриптором (включая `checksum`), файл остаётся на месте и не инлайнится: смысл дескриптора — что крупный корпус не проходит через контекст сабагента.
 - Не смешивать в одном TaskSpec `files_to_change` из несвязанных доменных областей.

@@ -25,7 +25,7 @@ disable-model-invocation: true
 ## Источники → что брать
 
 - `survey-*.json` → `observed_workflows`, `connected_groups`, `validation_boundaries`
-- `bd-*.json` (если передан) → `feature.workflow`, `acceptance_criteria[].workflow`, акторы, constraints, `data[]` (управляющие значения — в Definitions; большие матрицы — выдержкой со ссылкой на артефакт)
+- `bd-*.json` (если передан) → `feature.workflow`, `acceptance_criteria[].workflow`, акторы, constraints, `data[]` (управляющие значения — в Definitions; запись с `value_ref` → в док идёт `shape` + `sample` + ссылка на `path`, файл не копируется и не разворачивается в таблицу)
 - `task-*.json` (если передан) → `shape` (алгоритмические структуры, если без них поведение непонятно), `spec.files_to_change` (актуальные символы)
 
 ## Процесс

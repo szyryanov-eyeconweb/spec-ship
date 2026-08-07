@@ -2,7 +2,7 @@
 
 **S**hape → **H**and-off (decompose) → **I**mplement (build) → **P**rove (review).
 
-Библиотека из 7 скиллов + 2 сабагента. Каждый этап читает артефакт предыдущего из `.ship/pipeline/{slug}/` и производит свой JSON по схеме своего этапа. Схема каждого артефакта — JSONC-блок в `SCHEMA.md` рядом с его `SKILL.md`; поле `$schema` несёт метку схемы из колонки `Schema ID` карты ниже. Артефакты версионируются в репо.
+Библиотека из 11 скиллов + 4 сабагента. Каждый этап читает артефакт предыдущего из `.ship/pipeline/{slug}/` и производит свой JSON по схеме своего этапа. Схема каждого артефакта — JSONC-блок в `SCHEMA.md` рядом с его `SKILL.md`; поле `$schema` несёт метку схемы из колонки `Schema ID` карты ниже. Артефакты версионируются в репо.
 
 Этот README — карта и сквозные протоколы. Детали каждого этапа (процесс, схема, кейсы, грабли) — в соответствующем `SKILL.md`, не здесь.
 
@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | `/spec-ship:roadmap` | roadmap | размытый эпик на неск. фич | `.ship/roadmap/{epic}/MAP.json` + `ticket-*.json`; созревшая фича → `run` | `roadmap/map`, `roadmap/ticket` |
 | `/spec-ship:run` | run | описание фичи (+ якорь, + `handoff` из roadmap) | оркеструет всю цепочку | — (дирижёр) |
-м| `/spec-ship:survey` | survey | якорь в существующем коде | `survey-*.json` | `pipeline/survey` |
+ | `/spec-ship:survey` | survey | якорь в существующем коде | `survey-*.json` | `pipeline/survey` |
 | `/spec-ship:shape-doc` | shape-doc | требование/идея (+ survey) | `bd-*.json` | `pipeline/business-doc` |
 | `/spec-ship:decompose` | decompose | `bd-*.json` | `task-*.json` (×N), `tu-*.json` | `pipeline/task-spec`, `pipeline/test-update-ticket` |
 | `/spec-ship:bug_fix` | bug_fix | симптом + репро (вместо требования) | `diag-*.json`, `task-*.json`; заменяет shape-doc+decompose | `pipeline/diagnosis`, `pipeline/task-spec` |
@@ -31,6 +31,8 @@
 | `ship-green` | только `files_to_change`, не трогает tests | минимальный код пока тесты зелёные |
 | `ship-decompose` | только `task-*`/`tu-*` в `.ship/pipeline/`, код read-only, bd не морозит | Phase 1 в изолированном контексте: режет bd на TaskSpec, не тащит контекст интервью; апрув/frozen — оркестратор |
 | `ship-review` | только `ReviewReport` в `.ship/pipeline/`, код read-only | Phase 3 в изолированном контексте: судит по артефактам+диффу, не по памяти build |
+
+Схемы артефактов — тоже энфорсмент: PostToolUse-хук `ship-validate.py` (`hooks/`) валидирует каждый записанный JSON в `.ship/pipeline/` и возвращает нарушение агенту текстом. Правила `SCHEMA.md` и структурные законы CANON перестали быть добровольными. Молчит на неизвестной `$schema` — новый вид артефакта не блокируется.
 
 Изоляция прав — физический барьер, не инструкция: PreToolUse-хук `ship-guard.sh` отклоняет запись вне разрешённого слоя по `agent_type` (ship-red ≠ src, ship-green ≠ tests, ship-review/ship-decompose пишут только в `.ship/pipeline/`). GREEN не может схитрить с тестом, RED не видит реализацию, review/decompose не трогают код (decompose режет, апрув и frozen — оркестратор). Барьер активен при зарегистрированном хуке (установка); иначе деградирует до промпт-инструкции в теле сабагента.
 
@@ -54,7 +56,9 @@
     ├── adr-change-0002-01.json                 Phase 0/2/3  AdrChangeTicket (конфликт ADR)
     ├── build-0002-01.json                      Phase 2  BuildReport
     ├── adr-entry-0002-01-a.json                Phase 2  ADREntry (кандидат, опционально)
-    └── review-0002-01.json                     Phase 3  ReviewReport
+    ├── review-0002-01.json                     Phase 3  ReviewReport
+    └── data/                                   крупные data-значения файлами (value_ref)
+        └── d-1-rakeback-matrix.csv               в артефактах — дескриптор, не инлайн
 ```
 
 Slug-правило (едино во всех скиллах): `{bd-id}-{kebab}`, `kebab` = 4–6 значимых слов из `feature.title`, lowercase, дефисы. Канон для скиллов — [CANON.md](CANON.md) (грузится точечно, без всего README).
@@ -146,6 +150,18 @@ bd.data[] (интервью: точное значение или open_question)
 ```
 
 «Около 5%» — это `open_question`, не data-запись.
+
+**Крупное значение — дескриптор, не инлайн.** Матрица на десятки строк, справочный список, длинный шаблон живут файлом в `{slug}/data/`, а в артефакт идёт `value_ref`: `path`, `shape` (сколько строк/колонок), `sample` (пара строк с краёв) и `checksum`. Инлайн такой матрицы копируется в каждый TaskSpec-носитель и съедает контекст сабагентов; дескриптор — нет, а точность держится строже: `checksum` ловит тихо изменённую константу, которую сверка глазами пропускает.
+
+```
+value    (скаляр, короткий список, шаблон в строку)     → инлайн в артефакте
+value_ref (матрица, справочник, длинный шаблон)         → файл + дескриптор
+   → decompose копирует ДЕСКРИПТОР (файл на месте, не пересохраняется)
+      → RED/GREEN читают файл по path (он в files_read_only), корпус не в промпте
+         → review check #1: пересчитать хеш, сверить с checksum
+```
+
+`sample` — выдержка для чтения человеком, НЕ данные: тест или код, построенный на трёх строках из `sample` вместо файла целиком, — провал review.
 
 ### TEST-UPDATE flow
 
