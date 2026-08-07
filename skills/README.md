@@ -15,6 +15,7 @@
 м| `/spec-ship:survey` | survey | якорь в существующем коде | `survey-*.json` | `pipeline/survey` |
 | `/spec-ship:shape-doc` | shape-doc | требование/идея (+ survey) | `bd-*.json` | `pipeline/business-doc` |
 | `/spec-ship:decompose` | decompose | `bd-*.json` | `task-*.json` (×N), `tu-*.json` | `pipeline/task-spec`, `pipeline/test-update-ticket` |
+| `/spec-ship:bug_fix` | bug_fix | симптом + репро (вместо требования) | `diag-*.json`, `task-*.json`; заменяет shape-doc+decompose | `pipeline/diagnosis`, `pipeline/task-spec` |
 | `/spec-ship:build` | build | `task-*.json` | `build-*.json`, `adr-entry-*.json` | `pipeline/build-report`, `pipeline/adr-entry` |
 | `/spec-ship:review` | review | `build-*.json` | `review-*.json` | `pipeline/review-report` |
 | `/spec-ship:adr-promote` | adr-promote | `adr-entry-*.json` (Proposed) | `.ship/docs/adr/ADR-NNN-*.md` + INDEX | — (markdown канон) |
@@ -45,8 +46,9 @@
 ├── _intake/                                 ← survey до создания BusinessDoc
 │   └── survey-2026-0007.json                  Phase 0a (переносится в slug при shape)
 └── {slug}/                                  ← feature slug = {bd-id}-{kebab feature.title}
-    ├── survey-bd-2026-0002.json               Phase 0a Survey (опционально)
+    ├── survey-bd-2026-0002.json               Phase 0a Survey (опционально; на баге обязателен)
     ├── bd-2026-0002.json                      Phase 0  BusinessDoc
+    ├── diag-2026-0011.json                    bug_fix  Diagnosis (баг-вход; вместо bd)
     ├── task-0002-01.json … task-0002-NN.json  Phase 1  TaskSpec ×N
     ├── tu-0002-01.json                         Phase 1/2  TestUpdateTicket (конфликт теста)
     ├── adr-change-0002-01.json                 Phase 0/2/3  AdrChangeTicket (конфликт ADR)
@@ -78,11 +80,29 @@ Slug-правило (едино во всех скиллах): `{bd-id}-{kebab}`
    → 5/5 checklist → APPROVED → mr_ready: true → review-0002-01.json
 ```
 
+## Баг-ветка: вход-симптом
+
+Фича знает WHAT, баг знает только «сломано вот тут». `shape-doc` на баге даёт пустое интервью («какое поведение хотим?» → «правильное»), `decompose` вырождается (корень один — слайс один). Потому баг-вход идёт своей ветвью:
+
+```
+/spec-ship:bug_fix «симптом; репро; якорь»
+   → survey (ОБЯЗАТЕЛЕН, якорь = точка симптома) → репро-тест первым (ship-red)
+   → root cause (гипотезы + опровержение) → blast radius (все вызывающие корня)
+   → diag-*.json + task-*.json
+/spec-ship:build task-0011-01     без изменений
+/spec-ship:review build-0011-01   + check #6 regression_guard
+```
+
+`bug_fix` **заменяет** `shape-doc` + `decompose`, а не добавляется к ним. Выход — обычный `TaskSpec` (`business_doc_id: null`, `diagnosis_id` заполнен), поэтому `build` не отличает баг от фичи и сабагенты те же: репро-тест — это ровно RED, фикс — GREEN.
+
+Survey здесь обязателен, а не опционален: `connected_groups` даёт sibling-callers, `.ship/docs/workflows/` со `Status: current` — источник intended behavior вместо интервью. Механика — `bug_fix/SKILL.md`.
+
 ## Этапы (детали — в SKILL.md)
 
 | Phase | Скилл | Суть | Участие человека |
 |---|---|---|---|
-| 0a | survey | якорь → трассировка связанного кода, доказательная карта (только для изменений существующего поведения) | подтверждает якорь |
+| 0a | survey | якорь → трассировка связанного кода, доказательная карта (только для изменений существующего поведения; на баге обязателен) | подтверждает якорь |
+| F | bug_fix | симптом → репро-тест → корень → blast radius → TaskSpec. **Заменяет `shape-doc` + `decompose`** на баг-входе | локализация, «баг или намеренное?», апрув диагноза |
 | 0 | shape-doc | требование → BusinessDoc, Requirements Review, заморозка | BA апрувит |
 | 1 | decompose | BusinessDoc → vertical slices TaskSpec, классификация trust_zone | апрув разбивки |
 | 2 | build | оркестрация билда по trust_zone (см. ниже) | только LOGIC/CRITICAL |
@@ -235,5 +255,8 @@ Stop-хук (.claude/hooks/ship-notify.sh, регистрация в .claude/set
 | GREEN конфликт spec/тест | TestUpdateTicket, стоп |
 | ADR-конфликт, человек сказал "устарел" | ESCALATE, AdrChangeTicket, стоп |
 | review вернул ESCALATE | Dev с полным контекстом |
+| bug_fix: симптом не воспроизводится | стоп — нет репро, нет бага: что пробовали, чего не хватает |
+| bug_fix: корень не найден за N гипотез | Diagnosis с гипотезами к Dev; TaskSpec не производится |
+| bug_fix: у `expected` нет источника | гейт «баг или намеренное поведение?», диагноз не сохраняется |
 
 Лимит итераций GREEN `N` задаётся в одном месте — `ship-green` (frontmatter-логика). Остальные файлы ссылаются на `N` без числа.
