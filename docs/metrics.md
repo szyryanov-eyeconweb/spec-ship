@@ -2,6 +2,8 @@
 
 Два независимых хука измеряют, во что обходится прогон пайплайна: `hooks/ship-timer.sh` — активное время (без простоя в ожидании вас), `hooks/ship-tokens.sh` — расход токенов. Оба пишут per-session state на диск, ничего никуда не отправляют.
 
+Хуки не завязаны на spec-ship — не читают `.ship/pipeline/`, не знают про артефакты пайплайна. Годятся в любом проекте на Claude Code, где нужно мерить время/токены сессии и её сабагентов, не только в паре со spec-ship.
+
 ## Как это устроено
 
 ```
@@ -33,17 +35,19 @@ SubagentStop     → ship-timer:  subagents[agent_id].total += now - started
 
 ## Установка
 
+Три файла — `ship-timer.sh`, `ship-tokens.sh`, `ship-report.py` (из `hooks/` этого репозитория, или откуда угодно ещё) — положить в `.claude/hooks/` вашего проекта:
+
 ```bash
-SPEC_SHIP=/path/to/spec-ship
 PROJECT=/path/to/your-project
 
 mkdir -p "$PROJECT/.claude/hooks"
-cp "$SPEC_SHIP/hooks/ship-timer.sh"  "$PROJECT/.claude/hooks/"
-cp "$SPEC_SHIP/hooks/ship-tokens.sh" "$PROJECT/.claude/hooks/"
-chmod +x "$PROJECT/.claude/hooks/ship-timer.sh" "$PROJECT/.claude/hooks/ship-tokens.sh"
+cp ship-timer.sh ship-tokens.sh ship-report.py "$PROJECT/.claude/hooks/"
+chmod +x "$PROJECT/.claude/hooks/ship-timer.sh" "$PROJECT/.claude/hooks/ship-tokens.sh" "$PROJECT/.claude/hooks/ship-report.py"
 ```
 
-Зарегистрировать в `$PROJECT/.claude/settings.json` (можно слить с уже существующими хуками `ship-guard.sh`/`ship-validate.py`/`ship-notify.sh`, если те уже установлены — на одно событие допустимо несколько хуков в массиве):
+Путь `.claude/hooks/` — не обязательный, а просто конвенция; хуки не ссылаются друг на друга по пути, только по имени в `settings.json` ниже. Можно положить в любое место, тогда поправьте `command` в JSON соответственно.
+
+Зарегистрировать в `$PROJECT/.claude/settings.json` (можно слить с уже существующими хуками этого же проекта, если такие есть — на одно событие допустимо несколько хуков в массиве):
 
 ```json
 {
@@ -111,8 +115,6 @@ session c48fa94f-002c-45fb-9f4d-ca5ae4b7aadb
 ```
 
 `unknown` с `0m00s` в этом примере — сабагент, зафиксированный `ship-tokens` (у него usage есть), но не `ship-timer` (нет пары по `agent_id` — этот конкретный вызов не прошёл обычным `SubagentStart`/`SubagentStop`, разбор в разделе «Известные ограничения»). Джойн в `ship-report.py` берёт объединение ключей из обоих файлов, а не пересечение — такой сабагент не теряется молча, просто одна из двух метрик у него нулевая.
-
-Не устанавливается отдельным шагом — `ship-report.py` копируется вместе с остальными файлами в `hooks/`, шаг тот же, что выше.
 
 ## Ротация
 
