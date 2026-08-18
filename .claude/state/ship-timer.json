@@ -1,0 +1,23 @@
+{
+  "4d964a01-e17e-4502-8df4-701f46a0358f": {
+    "active_since": null,
+    "total_active": 729,
+    "subagents": {}
+  },
+  "c48fa94f-002c-45fb-9f4d-ca5ae4b7aadb": {
+    "active_since": null,
+    "total_active": 65,
+    "subagents": {
+      "a4a91767b2f1edbcd": {
+        "agent_type": "Explore",
+        "started": null,
+        "total": 13
+      },
+      "a8880289448a3b127": {
+        "agent_type": "general-purpose",
+        "started": null,
+        "total": 6
+      }
+    }
+  }
+}
