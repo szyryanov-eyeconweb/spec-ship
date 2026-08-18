@@ -1,0 +1,30 @@
+{
+  "4d964a01-e17e-4502-8df4-701f46a0358f": {
+    "tokens": {
+      "input": 354,
+      "output": 96275,
+      "cache_read": 19083387,
+      "cache_creation": 278606
+    },
+    "subagents": {}
+  },
+  "c48fa94f-002c-45fb-9f4d-ca5ae4b7aadb": {
+    "tokens": {
+      "input": 32,
+      "output": 2015,
+      "cache_read": 756393,
+      "cache_creation": 63699
+    },
+    "subagents": {
+      "a79b28385a43d2750": {
+        "agent_type": "",
+        "tokens": {
+          "input": 26,
+          "output": 1598,
+          "cache_read": 654568,
+          "cache_creation": 31724
+        }
+      }
+    }
+  }
+}
