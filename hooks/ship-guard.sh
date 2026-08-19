@@ -24,7 +24,7 @@ agent_type=$(jq -r '.agent_type // "main"' <<<"$input" 2>/dev/null)
 # Барьер только для наших сабагентов. Всё прочее (основная сессия, другие
 # сабагенты) — обычный flow.
 case "$agent_type" in
-    ship-red|ship-green) ;;
+    ship-red|ship-green|ship-review|ship-decompose) ;;
     *) exit 0 ;;
 esac
 
@@ -67,6 +67,20 @@ fi
 
 if [ "$agent_type" = "ship-green" ] && [ "$in_tests" -eq 1 ]; then
     deny "spec-ship: ship-green НЕ трогает тесты — они контракт RED. Запись в '$rel' отклонена (барьер Two-Agent TDD). Конфликт теста со spec → сообщи оркестратору (TestUpdateTicket), не правь тест."
+fi
+
+# ship-review / ship-decompose — пишут ТОЛЬКО артефакты в .ship/pipeline/,
+# код не трогают. Любая запись вне .ship/pipeline/ отклоняется.
+PIPELINE_DIR="${SHIP_GUARD_PIPELINE_DIR:-.ship/pipeline/}"
+case "$rel" in
+    "$PIPELINE_DIR"*|*/"$PIPELINE_DIR"*) in_pipeline=1 ;;
+    *) in_pipeline=0 ;;
+esac
+if [ "$agent_type" = "ship-review" ] && [ "$in_pipeline" -eq 0 ]; then
+    deny "spec-ship: ship-review пишет ТОЛЬКО ReviewReport в ${PIPELINE_DIR} — код не чинит. Запись в '$rel' отклонена. Дефект → NEEDS_WORK/ESCALATE в отчёте, чинит build."
+fi
+if [ "$agent_type" = "ship-decompose" ] && [ "$in_pipeline" -eq 0 ]; then
+    deny "spec-ship: ship-decompose пишет ТОЛЬКО task-*/tu-* в ${PIPELINE_DIR} — код не реализует, bd не морозит. Запись в '$rel' отклонена."
 fi
 
 exit 0

@@ -43,7 +43,11 @@ merge request → после мёржа: adr-promote / doc-promote-feature — �
                           (+ doc-backfill — заранее, из существующего кода)
 ```
 
-Команды в Claude Code: `/spec-ship:roadmap`, `/spec-ship:survey`, `/spec-ship:shape-doc`, `/spec-ship:decompose`, `/spec-ship:build`, `/spec-ship:review`, `/spec-ship:adr-promote`, `/spec-ship:doc-promote-feature`, `/spec-ship:doc-backfill`.
+Не уверены, какой сценарий ваш? **`/spec-ship:ask-ship «ваша задача»`** — карта сценариев: подбирает команду по входу (симптом → `bug_fix`, эпик → `roadmap`, фича → `run`) и объясняет выбор. Ничего не запускает, только маршрутизирует.
+
+Команды в Claude Code: `/spec-ship:ask-ship`, `/spec-ship:roadmap`, `/spec-ship:survey`, `/spec-ship:shape-doc`, `/spec-ship:decompose`, `/spec-ship:build`, `/spec-ship:review`, `/spec-ship:bug_fix`, `/spec-ship:adr-promote`, `/spec-ship:doc-promote-feature`, `/spec-ship:doc-backfill`.
+
+Если вход — **симптом, а не требование** (падающий тест, «не та сумма», регрессия), цепочка начинается иначе: **`/spec-ship:bug_fix`** заменяет shape-doc и decompose — выясняет, каким поведение задумано, находит корень, а не место, где симптом заметен, и отдаёт обычную задачу в build. Подробнее — [Починка бага](docs/09-bug-fix.md).
 
 Шаг `[00] roadmap` нужен только для крупного: эпик на несколько фич со сцепленными решениями. Он чертит карту решений и по одной выпускает созревшие фичи в `run`. Для одной понятной фичи начинайте прямо с shape-doc / run. Подробнее — [Карта эпика](docs/00-roadmap.md).
 
@@ -62,9 +66,11 @@ merge request → после мёржа: adr-promote / doc-promote-feature — �
 | [Шаг 1: decompose](docs/03-decompose.md) | Нарезка на задачи и зоны доверия |
 | [Шаг 2: build](docs/04-build.md) | Реализация: Two-Agent TDD |
 | [Шаг 3: review](docs/05-review.md) | Ревью и гейт перед MR |
+| [Ветка: bug_fix](docs/09-bug-fix.md) | Починка бага: вход-симптом вместо требования |
 | [Delivery: adr-promote](docs/06-adr-promote.md) | Решения — в канон ADR |
 | [Delivery: doc-promote](docs/07-doc-promote.md) | Поведение — в канон workflow-доков (feature, backfill, внутренний конвертер) |
 | [Запуск одной командой: run](docs/08-run.md) | Оркестрация всего цикла, гейты, флаги автономности |
+| [Выбор сценария](docs/cases.md) | Какой прогон под задачу и как гнать экономично (`/spec-ship:ask-ship`) |
 | [Установка](docs/installation.md) | Как подключить spec-ship к своему проекту |
 | [Уведомления](docs/notifications.md) | Telegram-уведомления, когда нужно ваше участие |
 

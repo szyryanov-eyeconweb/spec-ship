@@ -14,7 +14,7 @@ description: Ревью готового билда против его TaskSpec
 Загрузить из `.ship/pipeline/{slug}/`:
 - `BuildReport`: `build-<id>.json` (спросить если неоднозначно)
 - `TaskSpec`: `task-<id>.json` (из `build.task_spec_id`)
-- `BusinessDoc`: `bd-<id>.json` (из `business_doc_id` таскспека)
+- `BusinessDoc`: `bd-<id>.json` (из `business_doc_id` таскспека). `business_doc_id: null` → задача из `bug_fix`: вместо bd загрузить `Diagnosis` `diag-<id>.json` (из `diagnosis_id`); ожидания берутся из `defect.expected`, не из `acceptance_criteria`
 - ADR из `adr_refs` — резолвить через `.ship/docs/adr/INDEX.md`, загрузить тела только этих (НЕ все ADR)
 - Все `ADREntry` из `build.adr_entries`
 
@@ -30,14 +30,17 @@ description: Ревью готового билда против его TaskSpec
 - Весь `spec.interface` реализован.
 - Нет недокументированных endpoint/param.
 - Значения из `data[]` TaskSpec присутствуют в реализации точно: те же числа, порядок, размерность, шаблоны. Тихо изменённая константа (округление, «нормализация», другой дефолт в конфиге) = провал проверки.
+- Запись с `value_ref` проверяется **по checksum**, не глазами: пересчитать хеш файла по `path` и сверить с `value_ref.checksum`. Расхождение = провал (данные изменены после заморозки спеки). Если реализация скопировала данные в свой формат (сид, конфиг, миграция) — сверить, что копия полна и упорядочена как источник: `shape` из дескриптора говорит, сколько строк и колонок должно быть.
 
 ### 2. test_scenarios_covered
 - `tests_written` в BuildReport ≥ числа `test_scenarios` в TaskSpec.
+- `test_scenarios: []` (слайс без своих тестов) — валидно: покрытие даёт функциональный набор фичи на слайсе-носителе. Проверить, что этот носитель существует и его функц. сценарии покрывают `acceptance_criteria`, к которым слайс маппится. Баг-фикс: `test_scenarios: []` **не** валидно — репро-сценарий обязателен (см. check #6).
 - Каждый `ts-*` сценарий имеет соответствующий тест.
 - Тесты через публичный интерфейс (без моков доменных внутренностей).
+- **Тест ассертит результат, не взаимодействие.** Провал: тест, чей единственный assert — «метод вызван N раз» / `expects()->method()` / verify мока внутреннего коллаборатора / порядок вызовов. Такой тест не проверяет поведение. Исключение — внешний эффект (платёж, внешний API/шина, email/webhook): там verify вызова внешней границы легитимен. Внутренний сервис/репозиторий/маппер под исключение не подпадает.
 - Тесты написаны на заявленном `spec.test_seam`: `level` и `entry` совпадают. Тест, ушедший глубже (unit внутренностей вместо заявленного use-case-harness) или обошедший seam мокингом — провал: seam выбран decompose как контракт, RED его не переопределяет.
 - Если у сценария заполнены `workflow`/`input`/`expected_outcome` — тест ассертит именно `expected_outcome` (включая тип исключения для sad), не ослабленную версию.
-- Если `input` сценария ссылается на `d-N` — фикстура теста построена из точного значения `data[]`, не из аппроксимации или усечённой версии.
+- Если `input` сценария ссылается на `d-N` — фикстура теста построена из точного значения `data[]`, не из аппроксимации или усечённой версии. При `value_ref` фикстура читает файл по `path` целиком; тест, построенный на `sample` из дескриптора (3 строки вместо 200) — провал: `sample` существует для чтения человеком, не как данные.
 
 ### 3. adr_violations
 - Ни один `adr_refs` из TaskSpec не нарушен реализацией.
@@ -53,13 +56,23 @@ description: Ревью готового билда против его TaskSpec
 - Если `definition_of_done` BusinessDoc содержит latency/throughput target: проверить что адресован.
 - Если `ADREntry` отмечает performance-следствие: валидировать что claim правдоподобен.
 
+### 6. regression_guard (только баг-фикс)
+
+Применяется, когда `TaskSpec.diagnosis_id` не null (задача пришла из `bug_fix`). Иначе `{ "pass": true, "notes": "n/a — не баг-фикс" }`.
+
+- Репро-тест из `Diagnosis.repro_test` существует и остался в наборе постоянно (не удалён, не помечен skip).
+- Тест был RED до фикса (`Diagnosis.repro_test.was_red: true`) и GREEN после.
+- Фикс лежит в `Diagnosis.blast_radius.fix_point`, а не только в пути из тикета. Guard в одном вызывающем при `fix_point_is_shared: true` = провал: сиблинги остались сломанными.
+- Каждый `blast_radius.callers` с `broken: true` либо покрыт этим билдом, либо имеет свой TaskSpec. Непокрытый сиблинг — blocking issue.
+- `data_corruption` не null → проверить, что cleanup идёт **отдельным** TaskSpec, а не смешан с фиксом кода.
+
 ---
 
 ## Verdict
 
 | Результат | Условие |
 |-----------|---------|
-| `APPROVED` | все 5 проверок pass |
+| `APPROVED` | все 6 проверок pass |
 | `NEEDS_WORK` | ≥1 провал, чинимо агентом без Dev |
 | `ESCALATE` | фундаментальный конфликт spec, проблема безопасности или архитектурное нарушение |
 
@@ -108,7 +121,8 @@ description: Ревью готового билда против его TaskSpec
     "test_scenarios_covered": { "pass": true, "notes": "5/5 сценариев покрыты" },
     "adr_violations":         { "pass": true, "notes": null },
     "regressions":            { "pass": true, "notes": null },
-    "performance":            { "pass": true, "notes": "p95 45ms, DoD < 200ms" }
+    "performance":            { "pass": true, "notes": "p95 45ms, DoD < 200ms" },
+    "regression_guard":       { "pass": true, "notes": "n/a — не баг-фикс" }
   },
 
   "issues": [],
@@ -126,7 +140,7 @@ description: Ревью готового билда против его TaskSpec
 ## Правила
 
 - `mr_ready: true` ТОЛЬКО когда `verdict == "APPROVED"` И нет pending TestUpdateTicket.
-- Все 5 ключей checklist всегда присутствуют.
+- Все 6 ключей checklist всегда присутствуют. `regression_guard` на не-баг-задаче — `pass: true` с пометкой `n/a`, не отсутствующий ключ.
 - `issues[]` пуст для APPROVED, непуст для NEEDS_WORK/ESCALATE.
 - `escalation` = null для не-ESCALATE вердиктов.
 - Сохранить файл до отчёта о завершении.
