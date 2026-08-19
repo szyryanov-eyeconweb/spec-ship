@@ -10,6 +10,7 @@
 
 | Команда | Скилл | Вход | Выход | Schema ID |
 |---|---|---|---|---|
+| `/spec-ship:ask-ship` | ask-ship | задача словами | подсказка, какую команду звать | — (роутер, артефактов не пишет) |
 | `/spec-ship:roadmap` | roadmap | размытый эпик на неск. фич | `.ship/roadmap/{epic}/MAP.json` + `ticket-*.json`; созревшая фича → `run` | `roadmap/map`, `roadmap/ticket` |
 | `/spec-ship:run` | run | описание фичи (+ якорь, + `handoff` из roadmap) | оркеструет всю цепочку | — (дирижёр) |
  | `/spec-ship:survey` | survey | якорь в существующем коде | `survey-*.json` | `pipeline/survey` |
