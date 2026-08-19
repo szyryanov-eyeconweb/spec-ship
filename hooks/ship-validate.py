@@ -195,7 +195,7 @@ def check_task_spec(art: dict, errors: list[str]) -> None:
             errors.append("test_scenarios: [], но `spec.test_seam` заполнен — "
                           "тестировать нечего, seam должен быть null")
         if diag and not scen:
-            errors.append("задача из bug_fix с пустым test_scenarios — "
+            errors.append("задача из bug-fix с пустым test_scenarios — "
                           "репро-сценарий обязателен (regression guard)")
 
     if seam and isinstance(seam, dict):
