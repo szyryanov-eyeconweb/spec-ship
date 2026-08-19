@@ -4,8 +4,8 @@
 {
   "$schema": "pipeline/task-spec",
   "id": "task-0042-03",
-  "business_doc_id": "bd-2024-0042",   // null, если задача из bug_fix (BusinessDoc не существует)
-  "diagnosis_id": null,                // id Diagnosis, если задача из bug_fix; иначе null
+  "business_doc_id": "bd-2024-0042",   // null, если задача из bug-fix (BusinessDoc не существует)
+  "diagnosis_id": null,                // id Diagnosis, если задача из bug-fix; иначе null
   "created_at": "<ISO8601>",
 
   "title": "<краткий заголовок в повелительном>",
@@ -138,7 +138,7 @@
 ## Правила схемы
 
 - `trust_zone` ставится ОДИН раз здесь, пробрасывается неизменным в BuildReport и ReviewReport.
-- Ровно одно из `business_doc_id` / `diagnosis_id` непусто: фича приходит из BusinessDoc, баг — из Diagnosis (`bug_fix`). При `diagnosis_id` непустом `validation.business_doc_coverage: []`, покрытие проверяется против `defect.expected`, а `test_scenarios` обязан содержать репро-сценарий.
+- Ровно одно из `business_doc_id` / `diagnosis_id` непусто: фича приходит из BusinessDoc, баг — из Diagnosis (`bug-fix`). При `diagnosis_id` непустом `validation.business_doc_coverage: []`, покрытие проверяется против `defect.expected`, а `test_scenarios` обязан содержать репро-сценарий.
 - `spec.test_seam`: непустой ⟺ `test_scenarios` непустой. Слайс со сценариями → seam по трём правилам шага 2.5 (`existing: true` требует `prior_art`; нет разумного seam → LOGIC, не догадка RED). Слайс с `test_scenarios: []` → `test_seam: null`.
 - Тесты — на фичу, не на слайс (шаг 2): один функциональный набор на фичу (`level: functional`/`use-case-harness`) на слайсе внешнего входа; unit только на слайсах с реальной бизнес-логикой (`trust_zone: LOGIC`). Slice без своей логики — `test_scenarios: []`, `test_seam: null`.
 - `shape` — `null` для ROUTINE/CRITICAL, непустой скелет `status: "proposal"` для LOGIC. Decompose никогда не ставит `status: "approved"` — апрув на шейп-сессии build с Dev.

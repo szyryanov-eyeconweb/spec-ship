@@ -14,7 +14,7 @@ description: Ревью готового билда против его TaskSpec
 Загрузить из `.ship/pipeline/{slug}/`:
 - `BuildReport`: `build-<id>.json` (спросить если неоднозначно)
 - `TaskSpec`: `task-<id>.json` (из `build.task_spec_id`)
-- `BusinessDoc`: `bd-<id>.json` (из `business_doc_id` таскспека). `business_doc_id: null` → задача из `bug_fix`: вместо bd загрузить `Diagnosis` `diag-<id>.json` (из `diagnosis_id`); ожидания берутся из `defect.expected`, не из `acceptance_criteria`
+- `BusinessDoc`: `bd-<id>.json` (из `business_doc_id` таскспека). `business_doc_id: null` → задача из `bug-fix`: вместо bd загрузить `Diagnosis` `diag-<id>.json` (из `diagnosis_id`); ожидания берутся из `defect.expected`, не из `acceptance_criteria`
 - ADR из `adr_refs` — резолвить через `.ship/docs/adr/INDEX.md`, загрузить тела только этих (НЕ все ADR)
 - Все `ADREntry` из `build.adr_entries`
 
@@ -58,7 +58,7 @@ description: Ревью готового билда против его TaskSpec
 
 ### 6. regression_guard (только баг-фикс)
 
-Применяется, когда `TaskSpec.diagnosis_id` не null (задача пришла из `bug_fix`). Иначе `{ "pass": true, "notes": "n/a — не баг-фикс" }`.
+Применяется, когда `TaskSpec.diagnosis_id` не null (задача пришла из `bug-fix`). Иначе `{ "pass": true, "notes": "n/a — не баг-фикс" }`.
 
 - Репро-тест из `Diagnosis.repro_test` существует и остался в наборе постоянно (не удалён, не помечен skip).
 - Тест был RED до фикса (`Diagnosis.repro_test.was_red: true`) и GREEN после.
