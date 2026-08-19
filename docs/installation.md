@@ -149,7 +149,7 @@ chmod +x "$PROJECT/.claude/hooks/ship-notify.sh"
 Если чините баг (вход — симптом, а не требование) — своя ветка, shape-doc и decompose не нужны:
 
 ```
-/spec-ship:bug_fix Симптом; репро; якорь ClassName#method
+/spec-ship:bug-fix Симптом; репро; якорь ClassName#method
 ```
 
 ## Что появится в проекте по ходу работы
