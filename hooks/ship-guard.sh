@@ -20,6 +20,8 @@ input=$(cat)
 command -v jq >/dev/null 2>&1 || exit 0
 
 agent_type=$(jq -r '.agent_type // "main"' <<<"$input" 2>/dev/null)
+# Плагин-агенты приходят как "spec-ship:ship-red" — отбросить префикс плагина.
+agent_type="${agent_type##*:}"
 
 # Барьер только для наших сабагентов. Всё прочее (основная сессия, другие
 # сабагенты) — обычный flow.

@@ -79,7 +79,10 @@ merge request → после мёржа: adr-promote / doc-promote-feature — �
 ## Быстрый старт
 
 ```bash
-# 1. Установить в свой проект (подробности — docs/installation.md)
+# 1. Установить плагином (подробности и ручная установка — docs/installation.md)
+/plugin marketplace add https://github.com/szyryanov-eyeconweb/spec-ship
+/plugin install spec-ship@spec-ship
+#    или вручную:
 cp -r spec-ship/skills   your-project/.claude/skills/spec-ship
 cp -r spec-ship/commands your-project/.claude/commands/spec-ship
 cp spec-ship/agents/*.md your-project/.claude/agents/
