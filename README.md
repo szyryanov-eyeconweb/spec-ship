@@ -84,7 +84,7 @@ merge request → после мёржа: adr-promote / doc-promote-feature — �
 /plugin install spec-ship@spec-ship
 #    или вручную:
 cp -r spec-ship/skills   your-project/.claude/skills/spec-ship
-cp -r spec-ship/commands your-project/.claude/commands/spec-ship
+cp -r spec-ship/manual-install/commands your-project/.claude/commands/spec-ship
 cp spec-ship/agents/*.md your-project/.claude/agents/
 cp spec-ship/hooks/ship-guard.sh your-project/.claude/hooks/   # + регистрация PreToolUse (см. installation.md)
 
@@ -109,7 +109,7 @@ cp spec-ship/hooks/ship-guard.sh your-project/.claude/hooks/   # + регист�
 ```
 skills/      скиллы этапов + run-оркестратор + doc-promote-internal-конвертер;
              канон-файлы README, CANON (slug + нотация), FAN-OUT, ADR-CONFLICT
-commands/    обёртки слэш-команд /spec-ship:*
+manual-install/commands/  обёртки слэш-команд /spec-ship:* (только для ручной установки; плагин даёт их скиллами)
 agents/      сабагенты ship-red и ship-green (Two-Agent TDD)
 hooks/       ship-guard.sh — барьер изоляции прав RED/GREEN; ship-notify.sh — Telegram-уведомления
 docs/        документация (вы здесь)
