@@ -1,0 +1,8 @@
+{
+  "name": "spec-ship",
+  "description": "Конвейер доставки фич для AI-агентов: spec → RED/GREEN TDD → review → канон (ADR и workflow-доки)",
+  "version": "0.1.0",
+  "author": { "name": "Sergey Zyryanov" },
+  "license": "MIT",
+  "hooks": "./hooks/hooks.json"
+}

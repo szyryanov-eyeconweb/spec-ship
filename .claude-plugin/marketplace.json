@@ -1,0 +1,8 @@
+{
+  "name": "spec-ship",
+  "description": "Плагины spec-ship для Claude Code",
+  "owner": { "name": "Sergey Zyryanov" },
+  "plugins": [
+    { "name": "spec-ship", "source": "./", "description": "Конвейер доставки фич: spec → RED/GREEN TDD → review → канон" }
+  ]
+}

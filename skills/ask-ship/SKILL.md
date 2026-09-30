@@ -58,4 +58,4 @@ survey → shape-doc → decompose → build (×N задач) → review
 
 ## Дальше
 
-Когда сценарий выбран: детали этапа — его `SKILL.md` в `.claude/skills/spec-ship/{скилл}/`; сквозные протоколы и схемы — `skills/README.md`.
+Когда сценарий выбран: детали этапа — его `SKILL.md` (каталог скиллов spec-ship: плагин — `${CLAUDE_PLUGIN_ROOT}/skills/{скилл}/`, ручная установка — `.claude/skills/spec-ship/{скилл}/`); сквозные протоколы и схемы — `skills/README.md`.
