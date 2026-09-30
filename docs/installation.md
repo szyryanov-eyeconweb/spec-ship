@@ -1,6 +1,17 @@
 # Установка spec-ship в проект
 
-spec-ship — это набор скиллов, команд, сабагентов и хука для Claude Code. Установка — копирование файлов в `.claude/` вашего проекта.
+spec-ship — это набор скиллов, команд, сабагентов и хуков для Claude Code. Ставится плагином (рекомендуется) или копированием файлов в `.claude/` проекта.
+
+## Вариант A. Плагин Claude Code (рекомендуется)
+
+```
+/plugin marketplace add /path/to/spec-ship      # или owner/repo на GitHub
+/plugin install spec-ship@spec-ship
+```
+
+Команды появятся как `/spec-ship:*`, сабагенты `ship-*` и хуки (барьер прав `ship-guard`, валидатор схем `ship-validate`, Stop-уведомление `ship-notify`) регистрируются автоматически — шаги 1 и 1.5 ниже не нужны. Нужны `jq` и Python 3. Дальше — с шага 2. Метрики (`ship-timer`/`ship-tokens`) в плагин не входят, см. [metrics.md](metrics.md).
+
+## Вариант B. Ручная установка (копирование в `.claude/`)
 
 ## Требования
 
