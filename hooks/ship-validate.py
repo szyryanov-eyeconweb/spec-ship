@@ -75,7 +75,8 @@ SCHEMAS: dict[str, dict] = {
 TRUST_ZONES = {"ROUTINE", "LOGIC", "CRITICAL"}
 VERDICTS = {"APPROVED", "NEEDS_WORK", "ESCALATE"}
 REVIEW_CHECKS = ["spec_coverage", "test_scenarios_covered", "adr_violations",
-                 "regressions", "performance", "regression_guard"]
+                 "regressions", "performance", "regression_guard",
+                 "assumptions_covered"]
 
 
 def _get(obj: dict, dotted: str):
@@ -264,8 +265,16 @@ def check_review_report(art: dict, errors: list[str]) -> None:
 
     issues = art.get("issues")
     if isinstance(issues, list):
-        if verdict == "APPROVED" and issues:
-            errors.append("verdict APPROVED с непустым `issues[]`")
+        for i, iss in enumerate(issues):
+            sev = iss.get("severity") if isinstance(iss, dict) else None
+            if sev not in ("blocking", "warning"):
+                errors.append(f"issues[{i}].severity `{sev}` — допустимы "
+                              f"blocking | warning")
+        blocking = [iss for iss in issues
+                    if isinstance(iss, dict) and iss.get("severity") == "blocking"]
+        if verdict == "APPROVED" and blocking:
+            errors.append("verdict APPROVED с blocking-issue — при APPROVED "
+                          "допустимы только warning")
         if verdict in ("NEEDS_WORK", "ESCALATE") and not issues:
             errors.append(f"verdict {verdict} с пустым `issues[]`")
 

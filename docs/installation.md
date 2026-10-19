@@ -57,7 +57,7 @@ chmod +x "$PROJECT/.claude/hooks/ship-validate.py"
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit|MultiEdit|Bash",
         "hooks": [
           {
             "type": "command",
