@@ -146,6 +146,15 @@ bad["regressions"] = {"pass": False, "notes": "src/A.php:10"}
 check(review(checklist=bad), "провалены проверки", "APPROVED с провалом")
 check(review(checklist={k: {"pass": True} for k in v.REVIEW_CHECKS[:5]}),
       "regression_guard", "нет ключа шестой проверки")
+check(review(checklist={k: {"pass": True} for k in v.REVIEW_CHECKS[:6]}),
+      "assumptions_covered", "нет ключа седьмой проверки")
+check(review(issues=[{"severity": "warning", "location": "a.php:1",
+                      "description": "мёртвый CSS"}]),
+      None, "APPROVED с warning-ом — валидно")
+check(review(issues=[{"severity": "blocking"}]),
+      "blocking", "APPROVED с blocking-issue")
+check(review(issues=[{"severity": "LOW"}]),
+      "severity", "неизвестный severity")
 check(review(verdict="ESCALATE", mr_ready=False, issues=[{"severity": "blocking"}]),
       "без `escalation`", "ESCALATE без блока эскалации")
 
