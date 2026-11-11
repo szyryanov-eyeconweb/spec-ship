@@ -450,7 +450,7 @@ pre.sc{margin:0;padding:10px 11px;font-size:10.5px;line-height:1.65;font-family:
         <div class="st ok">✓ APPROVED → MR</div>
         <div class="st warn">↻ NEEDS_WORK → итерация</div>
         <div class="st err">↑ ESCALATE → Dev</div>
-        <div class="card-skill">/spec-ship:review — 5-чеклист: spec_coverage, test_scenarios_covered, adr_violations, regressions, performance</div>
+        <div class="card-skill">/spec-ship:review — 7-чеклист: spec_coverage, test_scenarios_covered, adr_violations, regressions, performance, regression_guard, assumptions_covered</div>
       </div>
       <div class="card-foot"><span class="ctx">ctx</span><span class="tag t-task">task</span><span class="tag t-adr">adr</span><span class="tag t-result">task-result</span></div>
     </div>
@@ -485,7 +485,9 @@ pre.sc{margin:0;padding:10px 11px;font-size:10.5px;line-height:1.65;font-family:
     <span class="k">"test_scenarios_covered"</span>: { <span class="k">"pass"</span>: <span class="n">true</span>, <span class="k">"notes"</span>: <span class="s">"5/5"</span> },
     <span class="k">"adr_violations"</span>:         { <span class="k">"pass"</span>: <span class="n">true</span> },
     <span class="k">"regressions"</span>:            { <span class="k">"pass"</span>: <span class="n">true</span> },
-    <span class="k">"performance"</span>:            { <span class="k">"pass"</span>: <span class="n">true</span>, <span class="k">"notes"</span>: <span class="s">"p95 45ms &lt; 200ms"</span> }
+    <span class="k">"performance"</span>:            { <span class="k">"pass"</span>: <span class="n">true</span>, <span class="k">"notes"</span>: <span class="s">"p95 45ms &lt; 200ms"</span> },
+    <span class="k">"regression_guard"</span>:       { <span class="k">"pass"</span>: <span class="n">true</span>, <span class="k">"notes"</span>: <span class="s">"n/a"</span> },
+    <span class="k">"assumptions_covered"</span>:    { <span class="k">"pass"</span>: <span class="n">true</span>, <span class="k">"notes"</span>: <span class="s">"q-2: held"</span> }
   },
   <span class="k">"issues"</span>: [],
   <span class="k">"escalation"</span>: <span class="n">null</span>,
@@ -612,7 +614,7 @@ function tog(btn){
     <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-code" style="flex-shrink:0">code</span><span><strong>src/ — исходный код</strong> — читается для понимания интерфейсов. <em>Пишет только ship-green (Phase 2), и только files_to_change.</em></span></div>
     <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-tests" style="flex-shrink:0">tests</span><span><strong>tests/ — тесты</strong> — контракт между RED и GREEN. <em>Пишет только ship-red. ship-green не трогает. Обновление — только через TestUpdateTicket + апрув.</em></span></div>
     <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-conflict" style="flex-shrink:0">conflict</span><span><strong>tu-*.json — TestUpdateTicket</strong> — конфликт существующего теста с новым spec. <em>Создаёт decompose (Phase 1) или build (Phase 2). Разрешает Agent RED + апрув maintainer.</em></span></div>
-    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-review" style="flex-shrink:0">review</span><span><strong>review-*.json — ReviewReport</strong> — вердикт APPROVED / NEEDS_WORK / ESCALATE + чеклист 5 проверок. <em>Создаёт /spec-ship:review (Phase 3). Гейт mr_ready: true → MR.</em></span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="tag t-review" style="flex-shrink:0">review</span><span><strong>review-*.json — ReviewReport</strong> — вердикт APPROVED / NEEDS_WORK / ESCALATE + чеклист 7 проверок. <em>Создаёт /spec-ship:review (Phase 3). Гейт mr_ready: true → MR.</em></span></div>
     <div style="display:flex;align-items:baseline;gap:10px"><span class="ctx" style="flex-shrink:0">ctx</span><span><strong>CONTEXT.md — доменный глоссарий</strong> — термины проекта, имена состояний workflow на всех уровнях. <em>Читается на всех фазах. Обновляется на Phase 0.</em></span></div>
   </div>
 </div>

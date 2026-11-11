@@ -66,17 +66,36 @@ description: Ревью готового билда против его TaskSpec
 - Каждый `blast_radius.callers` с `broken: true` либо покрыт этим билдом, либо имеет свой TaskSpec. Непокрытый сиблинг — blocking issue.
 - `data_corruption` не null → проверить, что cleanup идёт **отдельным** TaskSpec, а не смешан с фиксом кода.
 
+### 7. assumptions_covered
+
+Допущение — то, под чем build ехал без ответа человека. Его записали, но никто не проверил, что код ему следует и что случай «допущение неверно» не выпал молча.
+
+Источник — `BusinessDoc.open_questions[]` с непустым `assumption` и `resolution: null`. Нет таких вопросов, или задача из `bug-fix` (нет BusinessDoc) → `{ "pass": true, "notes": "n/a — открытых допущений нет" }`.
+
+Для каждого допущения, которое касается кода этой задачи (`files_changed` / `spec.files_to_change`), выставить одно из трёх:
+
+| Статус | Значит | Итог |
+|---|---|---|
+| `held` | код следует допущению, есть тест на случай, где оно ломается (sad/edge) | pass |
+| `untested` | код следует допущению, но случай «оно неверно» не покрыт ни одним тестом | pass + issue `warning`: какой случай не покрыт |
+| `violated` | код расходится с допущением (сделал иначе или нарушил заявленное условие: «внутри lock», «по createdAt») | **провал**, issue `blocking` |
+
+- Допущение, не касающееся этой задачи → `n/a` с `q-N` в `notes`, не молчаливый пропуск.
+- `violated` не чинится в одну сторону автоматически. В issue назвать оба пути: поправить код под допущение или зафиксировать новое поведение в `resolution` вопроса (решает человек). Код, сделавший «лучше» допущения, — всё равно `violated`: документ врёт следующему survey.
+- Доказательство — `файл:строка`, как в остальных проверках. «Похоже, следует» — не статус.
+- `notes` перечисляет каждое проверенное допущение: `q-2: violated — src/A.php:59 фаза читается до lock (65); q-3: untested — нет теста на redelivery fee-операций`.
+
 ---
 
 ## Verdict
 
 | Результат | Условие |
 |-----------|---------|
-| `APPROVED` | все 6 проверок pass |
+| `APPROVED` | все 7 проверок pass, в `issues[]` только `warning` |
 | `NEEDS_WORK` | ≥1 провал, чинимо агентом без Dev |
 | `ESCALATE` | фундаментальный конфликт spec, проблема безопасности или архитектурное нарушение |
 
-- `APPROVED` → `mr_ready: true`, сохранить ReviewReport.
+- `APPROVED` → `mr_ready: true`, сохранить ReviewReport. Найденное, но не блокирующее (мёртвый код, непокрытое допущение, неполный хендофф) — `warning` в `issues[]`, не прятать.
 - `NEEDS_WORK` → список issues с `severity: "blocking" | "warning"`, `mr_ready: false`.
 - `ESCALATE` → `mr_ready: false`, заполнить `escalation`, уведомить Dev с полным контекстом.
 
@@ -122,12 +141,13 @@ description: Ревью готового билда против его TaskSpec
     "adr_violations":         { "pass": true, "notes": null },
     "regressions":            { "pass": true, "notes": null },
     "performance":            { "pass": true, "notes": "p95 45ms, DoD < 200ms" },
-    "regression_guard":       { "pass": true, "notes": "n/a — не баг-фикс" }
+    "regression_guard":       { "pass": true, "notes": "n/a — не баг-фикс" },
+    "assumptions_covered":    { "pass": true, "notes": "q-2: held — tests/…Test.php:40; q-3: untested — нет теста на redelivery" }
   },
 
   "issues": [],
-  // при NEEDS_WORK или ESCALATE:
   // [{ "severity": "blocking | warning", "location": "file:line", "description": "..." }]
+  // APPROVED — только warning; NEEDS_WORK/ESCALATE — непуст
 
   "escalation": null,
   // при ESCALATE:
@@ -140,7 +160,7 @@ description: Ревью готового билда против его TaskSpec
 ## Правила
 
 - `mr_ready: true` ТОЛЬКО когда `verdict == "APPROVED"` И нет pending TestUpdateTicket.
-- Все 6 ключей checklist всегда присутствуют. `regression_guard` на не-баг-задаче — `pass: true` с пометкой `n/a`, не отсутствующий ключ.
-- `issues[]` пуст для APPROVED, непуст для NEEDS_WORK/ESCALATE.
+- Все 7 ключей checklist всегда присутствуют. `regression_guard` на не-баг-задаче и `assumptions_covered` без открытых допущений — `pass: true` с пометкой `n/a`, не отсутствующий ключ.
+- `issues[]` при APPROVED — пуст или только `warning`; при NEEDS_WORK/ESCALATE — непуст. `severity` — только `blocking` | `warning`.
 - `escalation` = null для не-ESCALATE вердиктов.
 - Сохранить файл до отчёта о завершении.
