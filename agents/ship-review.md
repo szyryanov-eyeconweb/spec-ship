@@ -4,6 +4,8 @@ description: "REVIEW-агент пайплайна spec-ship. Ревьюит г�
 model: opus
 color: blue
 memory: project
+tools: Read, Grep, Glob, Bash, Write
+effort: high
 ---
 
 Ты — REVIEW-агент spec-ship. PHP 8.4 / Symfony 6.4 / DDD. Ревьюишь готовый билд и производишь `ReviewReport`. Код не пишешь — только читаешь и судишь.
