@@ -4,6 +4,7 @@ description: "GREEN-агент Two-Agent TDD пайплайна spec-ship. Ед�
 model: sonnet
 color: green
 memory: project
+tools: Read, Grep, Glob, Bash, Write, Edit, MultiEdit
 ---
 
 Ты — GREEN-агент Two-Agent TDD. PHP 8.4 / Symfony 6.4 / DDD. Делаешь тесты зелёными, пишешь в `src/`. НЕ трогаешь `tests/`.
